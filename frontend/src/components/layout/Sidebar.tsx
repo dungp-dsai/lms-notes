@@ -130,28 +130,16 @@ export function Sidebar({
         )}
 
         <div className="flex flex-wrap gap-1">
-          <button
-            onClick={() => onSelectTag(null)}
-            className={cn(
-              "text-xs px-2 py-0.5 rounded-full transition-colors cursor-pointer",
-              selectedTagId === null
-                ? "bg-accent text-accent-foreground"
-                : "bg-secondary/50 text-muted-foreground hover:bg-secondary"
-            )}
-          >
-            All
-          </button>
           {tags.map((tag) => (
             <button
               key={tag.id}
-              onClick={() => onSelectTag(tag.id)}
+              onClick={() => onSelectTag(selectedTagId === tag.id ? null : tag.id)}
               className={cn(
-                "group text-xs px-2 py-0.5 rounded-full transition-colors cursor-pointer flex items-center gap-1",
+                "group text-xs px-2 py-0.5 rounded-md transition-colors cursor-pointer flex items-center gap-1 border",
                 selectedTagId === tag.id
-                  ? "text-white"
-                  : "text-white/80 hover:text-white"
+                  ? "border-foreground/50 bg-accent/50 text-foreground"
+                  : "border-border text-muted-foreground hover:border-foreground/30 hover:text-foreground"
               )}
-              style={{ backgroundColor: tag.color }}
             >
               {tag.name}
               <X
@@ -198,8 +186,7 @@ export function Sidebar({
                     {note.tags.map((tag) => (
                       <span
                         key={tag.id}
-                        className="text-[10px] px-1.5 py-0 rounded text-white/90"
-                        style={{ backgroundColor: tag.color }}
+                        className="text-[10px] px-1.5 py-0 rounded border border-border text-muted-foreground"
                       >
                         {tag.name}
                       </span>

@@ -189,13 +189,12 @@ export function NoteEditor({ noteId }: NoteEditorProps) {
               {noteTags.map((tag) => (
                 <span
                   key={tag.id}
-                  className="group text-xs px-2 py-0.5 rounded-full text-white flex items-center gap-1"
-                  style={{ backgroundColor: tag.color }}
+                  className="group text-xs px-2 py-0.5 rounded-md border border-border text-muted-foreground flex items-center gap-1"
                 >
                   {tag.name}
                   <button
                     onClick={() => handleRemoveTag(tag.id)}
-                    className="opacity-60 hover:opacity-100 transition-opacity"
+                    className="opacity-60 hover:opacity-100 transition-opacity hover:text-red-400"
                   >
                     <X className="h-3 w-3" />
                   </button>
