@@ -11,13 +11,16 @@ router = APIRouter(tags=["notes"])
 
 
 @router.get("/notes", response_model=list[NoteListItem])
-async def list_notes(db: AsyncSession = Depends(get_db)):
-    return await note_service.list_notes(db)
+async def list_notes(
+    tag_id: uuid.UUID | None = Query(None, description="Filter by tag ID"),
+    db: AsyncSession = Depends(get_db),
+):
+    return await note_service.list_notes(db, tag_id=tag_id)
 
 
 @router.post("/notes", response_model=NoteDetail, status_code=201)
 async def create_note(body: NoteCreate, db: AsyncSession = Depends(get_db)):
-    return await note_service.create_note(db, body.title, body.content)
+    return await note_service.create_note(db, body.title, body.content, body.tag_ids or None)
 
 
 @router.get("/notes/search", response_model=list[NoteSearchResult])
@@ -38,7 +41,7 @@ async def get_note(note_id: uuid.UUID, db: AsyncSession = Depends(get_db)):
 
 @router.put("/notes/{note_id}", response_model=NoteDetail)
 async def update_note(note_id: uuid.UUID, body: NoteUpdate, db: AsyncSession = Depends(get_db)):
-    note = await note_service.update_note(db, note_id, body.title, body.content)
+    note = await note_service.update_note(db, note_id, body.title, body.content, body.tag_ids)
     if note is None:
         raise HTTPException(status_code=404, detail="Note not found")
     return note

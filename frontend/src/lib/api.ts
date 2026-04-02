@@ -1,7 +1,14 @@
+export interface Tag {
+  id: string;
+  name: string;
+  color: string;
+}
+
 export interface NoteListItem {
   id: string;
   title: string;
   updated_at: string;
+  tags: Tag[];
 }
 
 export interface NoteDetail {
@@ -10,6 +17,7 @@ export interface NoteDetail {
   content: string;
   created_at: string;
   updated_at: string;
+  tags: Tag[];
 }
 
 export interface NoteSearchResult {
@@ -52,17 +60,18 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
 }
 
 export const api = {
-  listNotes: () => request<NoteListItem[]>("/notes"),
+  listNotes: (tagId?: string) =>
+    request<NoteListItem[]>(tagId ? `/notes?tag_id=${tagId}` : "/notes"),
 
   getNote: (id: string) => request<NoteDetail>(`/notes/${id}`),
 
-  createNote: (data: { title?: string; content?: string } = {}) =>
+  createNote: (data: { title?: string; content?: string; tag_ids?: string[] } = {}) =>
     request<NoteDetail>("/notes", {
       method: "POST",
       body: JSON.stringify(data),
     }),
 
-  updateNote: (id: string, data: { title?: string; content?: string }) =>
+  updateNote: (id: string, data: { title?: string; content?: string; tag_ids?: string[] }) =>
     request<NoteDetail>(`/notes/${id}`, {
       method: "PUT",
       body: JSON.stringify(data),
@@ -87,4 +96,20 @@ export const api = {
     if (!res.ok) throw new Error(`Upload failed: ${res.status}`);
     return res.json();
   },
+
+  listTags: () => request<Tag[]>("/tags"),
+
+  createTag: (data: { name: string; color?: string }) =>
+    request<Tag>("/tags", {
+      method: "POST",
+      body: JSON.stringify(data),
+    }),
+
+  updateTag: (id: string, data: { name: string; color: string }) =>
+    request<Tag>(`/tags/${id}`, {
+      method: "PUT",
+      body: JSON.stringify(data),
+    }),
+
+  deleteTag: (id: string) => request<void>(`/tags/${id}`, { method: "DELETE" }),
 };

@@ -1,13 +1,32 @@
 import uuid
 from datetime import datetime, timezone
 
-from sqlalchemy import DateTime, ForeignKey, String, Text, func
+from sqlalchemy import DateTime, ForeignKey, String, Table, Text, Column, func
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship
 
 
 class Base(DeclarativeBase):
     pass
+
+
+note_tags = Table(
+    "note_tags",
+    Base.metadata,
+    Column("note_id", UUID(as_uuid=True), ForeignKey("notes.id", ondelete="CASCADE"), primary_key=True),
+    Column("tag_id", UUID(as_uuid=True), ForeignKey("tags.id", ondelete="CASCADE"), primary_key=True),
+)
+
+
+class Tag(Base):
+    __tablename__ = "tags"
+
+    id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    name: Mapped[str] = mapped_column(String(100), nullable=False, unique=True)
+    color: Mapped[str] = mapped_column(String(20), nullable=False, default="#8b5cf6")
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+
+    notes: Mapped[list["Note"]] = relationship(secondary=note_tags, back_populates="tags")
 
 
 class Note(Base):
@@ -28,6 +47,7 @@ class Note(Base):
     incoming_links: Mapped[list["NoteLink"]] = relationship(
         foreign_keys="NoteLink.target_note_id", back_populates="target", cascade="all, delete-orphan"
     )
+    tags: Mapped[list["Tag"]] = relationship(secondary=note_tags, back_populates="notes")
 
 
 class NoteLink(Base):

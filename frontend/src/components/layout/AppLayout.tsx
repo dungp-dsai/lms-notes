@@ -4,6 +4,7 @@ import { NoteEditor } from "@/components/editor/NoteEditor";
 
 export function AppLayout() {
   const [activeNoteId, setActiveNoteId] = useState<string | null>(null);
+  const [selectedTagId, setSelectedTagId] = useState<string | null>(null);
 
   useEffect(() => {
     const handler = (e: Event) => {
@@ -18,7 +19,12 @@ export function AppLayout() {
 
   return (
     <div className="flex h-screen overflow-hidden">
-      <Sidebar activeNoteId={activeNoteId} onSelectNote={setActiveNoteId} />
+      <Sidebar
+        activeNoteId={activeNoteId}
+        onSelectNote={setActiveNoteId}
+        selectedTagId={selectedTagId}
+        onSelectTag={setSelectedTagId}
+      />
       <main className="flex-1 overflow-hidden">
         {activeNoteId ? (
           <NoteEditor key={activeNoteId} noteId={activeNoteId} />

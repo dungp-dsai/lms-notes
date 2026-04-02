@@ -8,7 +8,8 @@ import Underline from "@tiptap/extension-underline";
 import TaskList from "@tiptap/extension-task-list";
 import TaskItem from "@tiptap/extension-task-item";
 import Mention from "@tiptap/extension-mention";
-import { useNote, useUpdateNote, useBacklinks } from "@/hooks/useNotes";
+import { Plus, X } from "lucide-react";
+import { useNote, useUpdateNote, useBacklinks, useTags } from "@/hooks/useNotes";
 import { Toolbar } from "./Toolbar";
 import { ImagePaste } from "./extensions/image-paste";
 import { WikiLink } from "./extensions/wiki-link";
@@ -16,6 +17,7 @@ import { wikiLinkSuggestion } from "./extensions/wiki-link-suggestion";
 import type { WikiLinkSuggestionItem } from "./extensions/wiki-link-suggestion";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Input } from "@/components/ui/input";
+import { cn } from "@/lib/utils";
 
 interface NoteEditorProps {
   noteId: string;
@@ -24,10 +26,17 @@ interface NoteEditorProps {
 export function NoteEditor({ noteId }: NoteEditorProps) {
   const { data: note, isLoading } = useNote(noteId);
   const { data: backlinks = [] } = useBacklinks(noteId);
+  const { data: allTags = [] } = useTags();
   const updateNote = useUpdateNote();
   const [title, setTitle] = useState("");
+  const [showTagPicker, setShowTagPicker] = useState(false);
   const saveTimer = useRef<ReturnType<typeof setTimeout>>(null);
   const skipNextUpdate = useRef(false);
+  const tagPickerRef = useRef<HTMLDivElement>(null);
+
+  const noteTags = note?.tags || [];
+  const noteTagIds = noteTags.map((t) => t.id);
+  const availableTags = allTags.filter((t) => !noteTagIds.includes(t.id));
 
   const debouncedSave = useCallback(
     (fields: { title?: string; content?: string }) => {
@@ -38,6 +47,35 @@ export function NoteEditor({ noteId }: NoteEditorProps) {
     },
     [noteId, updateNote]
   );
+
+  const handleAddTag = (tagId: string) => {
+    const newTagIds = [...noteTagIds, tagId];
+    updateNote.mutate({ id: noteId, tag_ids: newTagIds });
+    setShowTagPicker(false);
+  };
+
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (
+        tagPickerRef.current &&
+        !tagPickerRef.current.contains(event.target as Node)
+      ) {
+        setShowTagPicker(false);
+      }
+    };
+
+    if (showTagPicker) {
+      document.addEventListener("mousedown", handleClickOutside);
+    }
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+    };
+  }, [showTagPicker]);
+
+  const handleRemoveTag = (tagId: string) => {
+    const newTagIds = noteTagIds.filter((id) => id !== tagId);
+    updateNote.mutate({ id: noteId, tag_ids: newTagIds });
+  };
 
   const editor: Editor | null = useEditor({
     extensions: [
@@ -146,6 +184,61 @@ export function NoteEditor({ noteId }: NoteEditorProps) {
               placeholder="Note title..."
               className="border-none text-2xl font-bold h-auto py-0 px-0 focus-visible:ring-0 bg-transparent"
             />
+
+            <div className="flex flex-wrap items-center gap-1.5 mt-3">
+              {noteTags.map((tag) => (
+                <span
+                  key={tag.id}
+                  className="group text-xs px-2 py-0.5 rounded-full text-white flex items-center gap-1"
+                  style={{ backgroundColor: tag.color }}
+                >
+                  {tag.name}
+                  <button
+                    onClick={() => handleRemoveTag(tag.id)}
+                    className="opacity-60 hover:opacity-100 transition-opacity"
+                  >
+                    <X className="h-3 w-3" />
+                  </button>
+                </span>
+              ))}
+
+              <div className="relative" ref={tagPickerRef}>
+                <button
+                  onClick={() => setShowTagPicker(!showTagPicker)}
+                  className={cn(
+                    "text-xs px-2 py-0.5 rounded-full border border-dashed border-border text-muted-foreground hover:text-foreground hover:border-foreground/50 transition-colors flex items-center gap-1 cursor-pointer",
+                    showTagPicker && "border-foreground/50 text-foreground"
+                  )}
+                >
+                  <Plus className="h-3 w-3" />
+                  Add tag
+                </button>
+
+                {showTagPicker && (
+                  <div className="absolute top-full left-0 mt-1 bg-popover border border-border rounded-md shadow-lg p-1 min-w-[120px] z-10">
+                    {availableTags.length === 0 ? (
+                      <div className="text-xs text-muted-foreground px-2 py-1">
+                        No more tags
+                      </div>
+                    ) : (
+                      availableTags.map((tag) => (
+                        <button
+                          key={tag.id}
+                          onClick={() => handleAddTag(tag.id)}
+                          className="w-full text-left text-xs px-2 py-1 rounded hover:bg-accent flex items-center gap-2 cursor-pointer"
+                        >
+                          <span
+                            className="w-2 h-2 rounded-full"
+                            style={{ backgroundColor: tag.color }}
+                          />
+                          {tag.name}
+                        </button>
+                      ))
+                    )}
+                  </div>
+                )}
+              </div>
+            </div>
           </div>
           <EditorContent editor={editor} />
 
