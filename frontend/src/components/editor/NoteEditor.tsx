@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useEditor, EditorContent } from "@tiptap/react";
+import type { Editor } from "@tiptap/react";
 import StarterKit from "@tiptap/starter-kit";
 import ImageExtension from "@tiptap/extension-image";
 import Placeholder from "@tiptap/extension-placeholder";
@@ -38,7 +39,7 @@ export function NoteEditor({ noteId }: NoteEditorProps) {
     [noteId, updateNote]
   );
 
-  const editor = useEditor({
+  const editor: Editor | null = useEditor({
     extensions: [
       StarterKit.configure({
         heading: { levels: [1, 2, 3] },
@@ -54,22 +55,18 @@ export function NoteEditor({ noteId }: NoteEditorProps) {
         HTMLAttributes: { class: "wiki-link" },
         suggestion: {
           ...wikiLinkSuggestion,
-          command: ({
-            editor: ed,
-            range,
-            props: item,
-          }: {
-            editor: typeof editor extends infer E ? E : never;
-            range: { from: number; to: number };
-            props: WikiLinkSuggestionItem;
-          }) => {
-            ed!
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          command: ({ editor: ed, range, props: item }: any) => {
+            (ed as Editor)
               .chain()
               .focus()
               .deleteRange(range)
               .insertContent({
                 type: "wikiLink",
-                attrs: { title: item.title, noteId: item.id },
+                attrs: {
+                  title: (item as WikiLinkSuggestionItem).title,
+                  noteId: (item as WikiLinkSuggestionItem).id,
+                },
               })
               .run();
           },

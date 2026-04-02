@@ -1,7 +1,6 @@
 import { ReactRenderer } from "@tiptap/react";
 import tippy, { type Instance as TippyInstance } from "tippy.js";
 import { api } from "@/lib/api";
-import type { SuggestionOptions, SuggestionProps } from "@tiptap/suggestion";
 import { WikiLinkList } from "../WikiLinkList";
 
 export type WikiLinkSuggestionItem = {
@@ -9,27 +8,23 @@ export type WikiLinkSuggestionItem = {
   title: string;
 };
 
-export const wikiLinkSuggestion: Omit<
-  SuggestionOptions<WikiLinkSuggestionItem>,
-  "editor"
-> = {
+export const wikiLinkSuggestion = {
   char: "[[",
   allowSpaces: true,
 
-  items: async ({ query }) => {
+  items: async ({ query }: { query: string }) => {
     const results = await api.searchNotes(query);
     return results.map((r) => ({ id: r.id, title: r.title }));
   },
 
   render: () => {
-    let component: ReactRenderer<
-      { onKeyDown: (props: { event: KeyboardEvent }) => boolean },
-      typeof WikiLinkList
-    >;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    let component: ReactRenderer<any>;
     let popup: TippyInstance[];
 
     return {
-      onStart: (props: SuggestionProps<WikiLinkSuggestionItem>) => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      onStart: (props: any) => {
         component = new ReactRenderer(WikiLinkList, {
           props,
           editor: props.editor,
@@ -48,7 +43,8 @@ export const wikiLinkSuggestion: Omit<
         });
       },
 
-      onUpdate(props: SuggestionProps<WikiLinkSuggestionItem>) {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      onUpdate(props: any) {
         component.updateProps(props);
 
         if (!props.clientRect) return;
