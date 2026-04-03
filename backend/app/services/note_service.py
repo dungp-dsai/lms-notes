@@ -31,9 +31,13 @@ async def get_note(db: AsyncSession, note_id: uuid.UUID) -> Note | None:
 
 
 async def create_note(
-    db: AsyncSession, title: str, content: str, tag_ids: list[uuid.UUID] | None = None
+    db: AsyncSession,
+    title: str,
+    content: str,
+    original_text: str = "",
+    tag_ids: list[uuid.UUID] | None = None,
 ) -> Note:
-    note = Note(title=title, content=content)
+    note = Note(title=title, content=content, original_text=original_text)
     if tag_ids:
         tags_result = await db.execute(select(Tag).where(Tag.id.in_(tag_ids)))
         note.tags = list(tags_result.scalars().all())
@@ -50,6 +54,7 @@ async def update_note(
     note_id: uuid.UUID,
     title: str | None,
     content: str | None,
+    original_text: str | None = None,
     tag_ids: list[uuid.UUID] | None = None,
 ) -> Note | None:
     result = await db.execute(
@@ -62,6 +67,8 @@ async def update_note(
         note.title = title
     if content is not None:
         note.content = content
+    if original_text is not None:
+        note.original_text = original_text
     if tag_ids is not None:
         tags_result = await db.execute(select(Tag).where(Tag.id.in_(tag_ids)))
         note.tags = list(tags_result.scalars().all())

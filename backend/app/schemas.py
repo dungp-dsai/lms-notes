@@ -22,12 +22,14 @@ class TagResponse(TagBase):
 class NoteCreate(BaseModel):
     title: str = "Untitled"
     content: str = ""
+    original_text: str = ""
     tag_ids: list[UUID] = []
 
 
 class NoteUpdate(BaseModel):
     title: str | None = None
     content: str | None = None
+    original_text: str | None = None
     tag_ids: list[UUID] | None = None
 
 
@@ -44,6 +46,7 @@ class NoteDetail(BaseModel):
     id: UUID
     title: str
     content: str
+    original_text: str = ""
     created_at: datetime
     updated_at: datetime
     tags: list[TagResponse] = []

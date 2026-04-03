@@ -15,6 +15,7 @@ export interface NoteDetail {
   id: string;
   title: string;
   content: string;
+  original_text: string;
   created_at: string;
   updated_at: string;
   tags: Tag[];
@@ -116,13 +117,13 @@ export const api = {
 
   getNote: (id: string) => request<NoteDetail>(`/notes/${id}`),
 
-  createNote: (data: { title?: string; content?: string; tag_ids?: string[] } = {}) =>
+  createNote: (data: { title?: string; content?: string; original_text?: string; tag_ids?: string[] } = {}) =>
     request<NoteDetail>("/notes", {
       method: "POST",
       body: JSON.stringify(data),
     }),
 
-  updateNote: (id: string, data: { title?: string; content?: string; tag_ids?: string[] }) =>
+  updateNote: (id: string, data: { title?: string; content?: string; original_text?: string; tag_ids?: string[] }) =>
     request<NoteDetail>(`/notes/${id}`, {
       method: "PUT",
       body: JSON.stringify(data),

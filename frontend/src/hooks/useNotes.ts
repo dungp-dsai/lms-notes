@@ -37,6 +37,7 @@ export function useUpdateNote() {
       id: string;
       title?: string;
       content?: string;
+      original_text?: string;
       tag_ids?: string[];
     }) => api.updateNote(id, data),
     onSuccess: (_data, variables) => {

@@ -8,8 +8,9 @@ import Underline from "@tiptap/extension-underline";
 import TaskList from "@tiptap/extension-task-list";
 import TaskItem from "@tiptap/extension-task-item";
 import Mention from "@tiptap/extension-mention";
-import { Plus, X } from "lucide-react";
+import { Plus, X, FileText } from "lucide-react";
 import { useNote, useUpdateNote, useBacklinks, useTags } from "@/hooks/useNotes";
+import { OriginalTextModal } from "@/components/OriginalTextModal";
 import { Toolbar } from "./Toolbar";
 import { ImagePaste } from "./extensions/image-paste";
 import { WikiLink } from "./extensions/wiki-link";
@@ -30,6 +31,7 @@ export function NoteEditor({ noteId }: NoteEditorProps) {
   const updateNote = useUpdateNote();
   const [title, setTitle] = useState("");
   const [showTagPicker, setShowTagPicker] = useState(false);
+  const [showOriginalText, setShowOriginalText] = useState(false);
   const saveTimer = useRef<ReturnType<typeof setTimeout>>(null);
   const skipNextUpdate = useRef(false);
   const tagPickerRef = useRef<HTMLDivElement>(null);
@@ -76,6 +78,13 @@ export function NoteEditor({ noteId }: NoteEditorProps) {
     const newTagIds = noteTagIds.filter((id) => id !== tagId);
     updateNote.mutate({ id: noteId, tag_ids: newTagIds });
   };
+
+  const handleSaveOriginalText = useCallback(
+    (text: string) => {
+      updateNote.mutate({ id: noteId, original_text: text });
+    },
+    [noteId, updateNote]
+  );
 
   const editor: Editor | null = useEditor({
     extensions: [
@@ -237,6 +246,17 @@ export function NoteEditor({ noteId }: NoteEditorProps) {
                   </div>
                 )}
               </div>
+
+              <button
+                onClick={() => setShowOriginalText(true)}
+                className={cn(
+                  "text-xs px-2 py-0.5 rounded-full border border-dashed border-border text-muted-foreground hover:text-foreground hover:border-foreground/50 transition-colors flex items-center gap-1 cursor-pointer",
+                  note.original_text && "border-purple-500/50 text-purple-400 hover:text-purple-300"
+                )}
+              >
+                <FileText className="h-3 w-3" />
+                {note.original_text ? "View Original" : "Add Original"}
+              </button>
             </div>
           </div>
           <EditorContent editor={editor} />
@@ -267,6 +287,13 @@ export function NoteEditor({ noteId }: NoteEditorProps) {
           )}
         </div>
       </ScrollArea>
+
+      <OriginalTextModal
+        isOpen={showOriginalText}
+        onClose={() => setShowOriginalText(false)}
+        originalText={note.original_text || ""}
+        onSave={handleSaveOriginalText}
+      />
     </div>
   );
 }
