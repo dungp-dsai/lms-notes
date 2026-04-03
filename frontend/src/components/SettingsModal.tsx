@@ -1,8 +1,8 @@
 import { useState, useEffect } from "react";
-import { X, Settings, Code, MessageSquare, BookOpen } from "lucide-react";
+import { X, Settings, Code, MessageSquare, BookOpen, Clock, Send, RefreshCw } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { useTagSettings, useUpdateSettings, useTags } from "@/hooks/useNotes";
+import { useTagSettings, useUpdateSettings, useTags, useScheduledJobs, useTestTelegram, useSyncScheduler } from "@/hooks/useNotes";
 import { cn } from "@/lib/utils";
 
 interface SettingsModalProps {
@@ -27,6 +27,7 @@ const DEFAULT_TIMES: Record<number, string[]> = {
 export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
   const { data: tags = [] } = useTags();
   const [selectedTagId, setSelectedTagId] = useState<string | null>(null);
+  const [activeTab, setActiveTab] = useState<"settings" | "jobs">("settings");
 
   useEffect(() => {
     if (tags.length > 0 && !selectedTagId) {
@@ -43,50 +44,183 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
         <div className="flex items-center justify-between p-4 border-b border-border">
           <div className="flex items-center gap-2">
             <Settings className="h-5 w-5 text-muted-foreground" />
-            <h2 className="text-lg font-semibold">Task Frequency Settings</h2>
+            <h2 className="text-lg font-semibold">Settings</h2>
           </div>
           <Button variant="ghost" size="icon" onClick={onClose}>
             <X className="h-4 w-4" />
           </Button>
         </div>
 
-        <div className="flex h-[500px]">
-          <div className="w-48 border-r border-border p-2 overflow-y-auto">
-            <p className="text-xs font-medium text-muted-foreground px-2 py-1 mb-1">
-              Select Tag
-            </p>
-            {tags.map((tag) => (
-              <button
-                key={tag.id}
-                onClick={() => setSelectedTagId(tag.id)}
-                className={cn(
-                  "w-full text-left px-3 py-2 rounded-md text-sm transition-colors",
-                  selectedTagId === tag.id
-                    ? "bg-accent text-accent-foreground"
-                    : "hover:bg-accent/50 text-muted-foreground"
-                )}
-              >
-                <div className="flex items-center gap-2">
-                  <div
-                    className="w-2.5 h-2.5 rounded-full"
-                    style={{ backgroundColor: tag.color }}
-                  />
-                  {tag.name}
-                </div>
-              </button>
-            ))}
-          </div>
-
-          <div className="flex-1 p-4 overflow-y-auto">
-            {selectedTagId ? (
-              <TagSettingsPanel tagId={selectedTagId} />
-            ) : (
-              <div className="text-center text-muted-foreground py-8">
-                Select a tag to configure
-              </div>
+        <div className="flex border-b border-border">
+          <button
+            onClick={() => setActiveTab("settings")}
+            className={cn(
+              "flex-1 px-4 py-2 text-sm font-medium transition-colors",
+              activeTab === "settings"
+                ? "border-b-2 border-primary text-foreground"
+                : "text-muted-foreground hover:text-foreground"
             )}
-          </div>
+          >
+            <div className="flex items-center justify-center gap-2">
+              <Settings className="h-4 w-4" />
+              Task Frequency
+            </div>
+          </button>
+          <button
+            onClick={() => setActiveTab("jobs")}
+            className={cn(
+              "flex-1 px-4 py-2 text-sm font-medium transition-colors",
+              activeTab === "jobs"
+                ? "border-b-2 border-primary text-foreground"
+                : "text-muted-foreground hover:text-foreground"
+            )}
+          >
+            <div className="flex items-center justify-center gap-2">
+              <Clock className="h-4 w-4" />
+              Scheduled Jobs
+            </div>
+          </button>
         </div>
+
+        {activeTab === "settings" ? (
+          <div className="flex h-[450px]">
+            <div className="w-48 border-r border-border p-2 overflow-y-auto">
+              <p className="text-xs font-medium text-muted-foreground px-2 py-1 mb-1">
+                Select Tag
+              </p>
+              {tags.map((tag) => (
+                <button
+                  key={tag.id}
+                  onClick={() => setSelectedTagId(tag.id)}
+                  className={cn(
+                    "w-full text-left px-3 py-2 rounded-md text-sm transition-colors",
+                    selectedTagId === tag.id
+                      ? "bg-accent text-accent-foreground"
+                      : "hover:bg-accent/50 text-muted-foreground"
+                  )}
+                >
+                  <div className="flex items-center gap-2">
+                    <div
+                      className="w-2.5 h-2.5 rounded-full"
+                      style={{ backgroundColor: tag.color }}
+                    />
+                    {tag.name}
+                  </div>
+                </button>
+              ))}
+            </div>
+
+            <div className="flex-1 p-4 overflow-y-auto">
+              {selectedTagId ? (
+                <TagSettingsPanel tagId={selectedTagId} />
+              ) : (
+                <div className="text-center text-muted-foreground py-8">
+                  Select a tag to configure
+                </div>
+              )}
+            </div>
+          </div>
+        ) : (
+          <ScheduledJobsPanel />
+        )}
+      </div>
+    </div>
+  );
+}
+
+function ScheduledJobsPanel() {
+  const { data: jobs = [], isLoading, refetch } = useScheduledJobs();
+  const testTelegram = useTestTelegram();
+  const syncScheduler = useSyncScheduler();
+
+  const handleTestTelegram = async () => {
+    try {
+      await testTelegram.mutateAsync(undefined);
+    } catch (error) {
+      console.error("Telegram test failed:", error);
+    }
+  };
+
+  const handleSync = async () => {
+    try {
+      await syncScheduler.mutateAsync();
+    } catch (error) {
+      console.error("Sync failed:", error);
+    }
+  };
+
+  return (
+    <div className="h-[450px] p-4 overflow-y-auto">
+      <div className="flex items-center justify-between mb-4">
+        <h3 className="font-medium">Upcoming Tasks</h3>
+        <div className="flex gap-2">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => refetch()}
+            disabled={isLoading}
+          >
+            <RefreshCw className={cn("h-4 w-4 mr-1", isLoading && "animate-spin")} />
+            Refresh
+          </Button>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={handleSync}
+            disabled={syncScheduler.isPending}
+          >
+            <RefreshCw className={cn("h-4 w-4 mr-1", syncScheduler.isPending && "animate-spin")} />
+            Sync Jobs
+          </Button>
+        </div>
+      </div>
+
+      {isLoading ? (
+        <div className="text-center text-muted-foreground py-8">Loading...</div>
+      ) : jobs.length === 0 ? (
+        <div className="text-center text-muted-foreground py-8">
+          <Clock className="h-12 w-12 mx-auto mb-2 opacity-50" />
+          <p>No scheduled jobs</p>
+          <p className="text-xs mt-1">Configure task frequencies in the Settings tab</p>
+        </div>
+      ) : (
+        <div className="space-y-2">
+          {jobs.map((job) => (
+            <div
+              key={job.id}
+              className="flex items-center justify-between p-3 rounded-lg border border-border bg-muted/30"
+            >
+              <div>
+                <p className="font-medium text-sm">{job.name}</p>
+                <p className="text-xs text-muted-foreground">ID: {job.id}</p>
+              </div>
+              <div className="text-right">
+                <p className="text-sm font-medium text-primary">{job.next_run_relative}</p>
+                <p className="text-xs text-muted-foreground">
+                  {new Date(job.next_run_time).toLocaleString()}
+                </p>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+
+      <div className="mt-6 pt-4 border-t border-border">
+        <h3 className="font-medium mb-3">Telegram Notifications</h3>
+        <Button
+          onClick={handleTestTelegram}
+          disabled={testTelegram.isPending}
+          className="w-full"
+        >
+          <Send className="h-4 w-4 mr-2" />
+          {testTelegram.isPending ? "Sending..." : testTelegram.isSuccess ? "Sent!" : "Test Telegram"}
+        </Button>
+        {testTelegram.isError && (
+          <p className="text-xs text-red-500 mt-2">Failed to send message. Check Telegram configuration.</p>
+        )}
+        {testTelegram.isSuccess && (
+          <p className="text-xs text-green-500 mt-2">Message sent successfully!</p>
+        )}
       </div>
     </div>
   );

@@ -83,6 +83,13 @@ export interface TagSettings {
   revising: TaskFrequencyConfig;
 }
 
+export interface ScheduledJob {
+  id: string;
+  name: string;
+  next_run_time: string;
+  next_run_relative: string;
+}
+
 const API_HOST = import.meta.env.VITE_API_URL || "";
 const BASE = `${API_HOST}/api`;
 
@@ -217,5 +224,15 @@ export const api = {
     request<TagSettings>(`/settings/${tagId}`, {
       method: "PUT",
       body: JSON.stringify(data),
+    }),
+
+  getScheduledJobs: () => request<ScheduledJob[]>("/scheduler/jobs"),
+
+  syncScheduler: () => request<{ status: string; jobs_count: number }>("/scheduler/sync", { method: "POST" }),
+
+  testTelegram: (message?: string) =>
+    request<{ status: string; message_sent: boolean }>("/scheduler/test-telegram", {
+      method: "POST",
+      body: JSON.stringify({ message: message || "Hello from LMS Notes! 👋" }),
     }),
 };

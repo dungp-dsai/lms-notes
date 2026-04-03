@@ -217,6 +217,31 @@ export function useUpdateSettings() {
     onSuccess: (_data, variables) => {
       qc.invalidateQueries({ queryKey: ["settings", variables.tagId] });
       qc.invalidateQueries({ queryKey: ["settings"] });
+      qc.invalidateQueries({ queryKey: ["scheduled-jobs"] });
     },
+  });
+}
+
+export function useScheduledJobs() {
+  return useQuery({
+    queryKey: ["scheduled-jobs"],
+    queryFn: () => api.getScheduledJobs(),
+    refetchInterval: 30000,
+  });
+}
+
+export function useSyncScheduler() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: () => api.syncScheduler(),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["scheduled-jobs"] });
+    },
+  });
+}
+
+export function useTestTelegram() {
+  return useMutation({
+    mutationFn: (message?: string) => api.testTelegram(message),
   });
 }

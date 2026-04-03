@@ -1,11 +1,23 @@
+from contextlib import asynccontextmanager
+
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 
 from .config import settings
-from .routers import images, notes, tags, tasks, settings as settings_router
+from .routers import images, notes, tags, tasks, settings as settings_router, scheduler
+from .services.scheduler_service import start_scheduler, stop_scheduler, sync_jobs_from_settings
 
-app = FastAPI(title="LMS Notes API")
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    start_scheduler()
+    await sync_jobs_from_settings()
+    yield
+    stop_scheduler()
+
+
+app = FastAPI(title="LMS Notes API", lifespan=lifespan)
 
 app.add_middleware(
     CORSMiddleware,
@@ -20,6 +32,7 @@ app.include_router(images.router, prefix="/api")
 app.include_router(tags.router, prefix="/api")
 app.include_router(tasks.router, prefix="/api")
 app.include_router(settings_router.router, prefix="/api")
+app.include_router(scheduler.router, prefix="/api")
 
 app.mount("/uploads", StaticFiles(directory=str(settings.upload_dir)), name="uploads")
 
