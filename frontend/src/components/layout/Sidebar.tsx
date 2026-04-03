@@ -33,6 +33,7 @@ export function Sidebar({
   const [search, setSearch] = useState("");
   const [newTagName, setNewTagName] = useState("");
   const [showTagInput, setShowTagInput] = useState(false);
+  const [tagToDelete, setTagToDelete] = useState<string | null>(null);
 
   const { data: notes = [], isLoading } = useNoteList(selectedTagId, showUntagged);
   const { data: tags = [] } = useTags();
@@ -72,8 +73,21 @@ export function Sidebar({
 
   const handleDeleteTag = (e: React.MouseEvent, tagId: string) => {
     e.stopPropagation();
-    if (selectedTagId === tagId) onSelectTag(null);
-    deleteTag.mutate(tagId);
+    setTagToDelete(tagId);
+  };
+
+  const confirmDeleteTag = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (tagToDelete) {
+      if (selectedTagId === tagToDelete) onSelectTag(null);
+      deleteTag.mutate(tagToDelete);
+      setTagToDelete(null);
+    }
+  };
+
+  const cancelDeleteTag = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    setTagToDelete(null);
   };
 
   return (
@@ -137,19 +151,41 @@ export function Sidebar({
           {tags.map((tag) => (
             <button
               key={tag.id}
-              onClick={() => onSelectTag(selectedTagId === tag.id ? null : tag.id)}
+              onClick={() => tagToDelete !== tag.id && onSelectTag(selectedTagId === tag.id ? null : tag.id)}
               className={cn(
                 "group text-xs px-2 py-0.5 rounded-md transition-colors cursor-pointer flex items-center gap-1 border",
-                selectedTagId === tag.id
+                tagToDelete === tag.id
+                  ? "border-red-500/50 bg-red-500/10 text-red-400"
+                  : selectedTagId === tag.id
                   ? "border-foreground/50 bg-accent/50 text-foreground"
                   : "border-border text-muted-foreground hover:border-foreground/30 hover:text-foreground"
               )}
             >
-              {tag.name}
-              <X
-                className="h-2.5 w-2.5 opacity-0 group-hover:opacity-100 transition-opacity hover:scale-125"
-                onClick={(e) => handleDeleteTag(e, tag.id)}
-              />
+              {tagToDelete === tag.id ? (
+                <>
+                  <span>Delete?</span>
+                  <span
+                    className="text-red-400 hover:text-red-300 font-medium cursor-pointer"
+                    onClick={confirmDeleteTag}
+                  >
+                    Yes
+                  </span>
+                  <span
+                    className="text-muted-foreground hover:text-foreground font-medium cursor-pointer"
+                    onClick={cancelDeleteTag}
+                  >
+                    No
+                  </span>
+                </>
+              ) : (
+                <>
+                  {tag.name}
+                  <X
+                    className="h-2.5 w-2.5 opacity-0 group-hover:opacity-100 transition-opacity hover:scale-125"
+                    onClick={(e) => handleDeleteTag(e, tag.id)}
+                  />
+                </>
+              )}
             </button>
           ))}
           {onToggleUntagged && (
