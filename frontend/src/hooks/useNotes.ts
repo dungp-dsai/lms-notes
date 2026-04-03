@@ -110,3 +110,78 @@ export function useDeleteTag() {
     },
   });
 }
+
+export function useTasks(tagId?: string, status?: string) {
+  return useQuery({
+    queryKey: ["tasks", { tagId, status }],
+    queryFn: () => api.listTasks(tagId, status),
+  });
+}
+
+export function useTaskStats() {
+  return useQuery({
+    queryKey: ["tasks", "stats"],
+    queryFn: api.getTaskStats,
+  });
+}
+
+export function useTask(id: string | null) {
+  return useQuery({
+    queryKey: ["tasks", id],
+    queryFn: () => api.getTask(id!),
+    enabled: !!id,
+  });
+}
+
+export function useCreateTask() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (data: {
+      tag_id: string;
+      title: string;
+      description?: string;
+      task_type: "coding" | "answering";
+      language?: string;
+      starter_code?: string;
+      test_code?: string;
+      expected_answer?: string;
+    }) => api.createTask(data),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["tasks"] });
+    },
+  });
+}
+
+export function useSubmitTask() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, answer }: { id: string; answer: string }) =>
+      api.submitTask(id, answer),
+    onSuccess: (_data, variables) => {
+      qc.invalidateQueries({ queryKey: ["tasks", variables.id] });
+      qc.invalidateQueries({ queryKey: ["tasks"] });
+    },
+  });
+}
+
+export function useUpdateTaskResult() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, result }: { id: string; result: "correct" | "wrong" }) =>
+      api.updateTaskResult(id, result),
+    onSuccess: (_data, variables) => {
+      qc.invalidateQueries({ queryKey: ["tasks", variables.id] });
+      qc.invalidateQueries({ queryKey: ["tasks"] });
+    },
+  });
+}
+
+export function useDeleteTask() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (id: string) => api.deleteTask(id),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["tasks"] });
+    },
+  });
+}

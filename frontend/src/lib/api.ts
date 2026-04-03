@@ -36,6 +36,40 @@ export interface ImageUploadResponse {
   filename: string;
 }
 
+export interface TaskListItem {
+  id: string;
+  tag_id: string;
+  title: string;
+  task_type: "coding" | "answering";
+  status: "pending" | "completed";
+  result: "correct" | "wrong" | null;
+}
+
+export interface TaskDetail {
+  id: string;
+  tag_id: string;
+  title: string;
+  description: string;
+  task_type: "coding" | "answering";
+  status: "pending" | "completed";
+  result: "correct" | "wrong" | null;
+  language: string | null;
+  starter_code: string | null;
+  test_code: string | null;
+  expected_answer: string | null;
+  user_answer: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface TagTaskStats {
+  tag_id: string;
+  pending: number;
+  completed: number;
+  correct: number;
+  wrong: number;
+}
+
 const API_HOST = import.meta.env.VITE_API_URL || "";
 const BASE = `${API_HOST}/api`;
 
@@ -117,4 +151,44 @@ export const api = {
     }),
 
   deleteTag: (id: string) => request<void>(`/tags/${id}`, { method: "DELETE" }),
+
+  listTasks: (tagId?: string, status?: string) => {
+    const params = new URLSearchParams();
+    if (tagId) params.set("tag_id", tagId);
+    if (status) params.set("status", status);
+    const query = params.toString();
+    return request<TaskListItem[]>(query ? `/tasks?${query}` : "/tasks");
+  },
+
+  getTaskStats: () => request<TagTaskStats[]>("/tasks/stats"),
+
+  getTask: (id: string) => request<TaskDetail>(`/tasks/${id}`),
+
+  createTask: (data: {
+    tag_id: string;
+    title: string;
+    description?: string;
+    task_type: "coding" | "answering";
+    language?: string;
+    starter_code?: string;
+    test_code?: string;
+    expected_answer?: string;
+  }) =>
+    request<TaskDetail>("/tasks", {
+      method: "POST",
+      body: JSON.stringify(data),
+    }),
+
+  submitTask: (id: string, answer: string) =>
+    request<TaskDetail>(`/tasks/${id}/submit`, {
+      method: "POST",
+      body: JSON.stringify({ answer }),
+    }),
+
+  updateTaskResult: (id: string, result: "correct" | "wrong") =>
+    request<TaskDetail>(`/tasks/${id}/result?result=${result}`, {
+      method: "POST",
+    }),
+
+  deleteTask: (id: string) => request<void>(`/tasks/${id}`, { method: "DELETE" }),
 };

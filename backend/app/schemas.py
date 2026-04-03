@@ -69,3 +69,65 @@ class ImageUploadResponse(BaseModel):
     id: UUID
     url: str
     filename: str
+
+
+class TaskCreate(BaseModel):
+    tag_id: UUID
+    title: str
+    description: str = ""
+    task_type: str  # "coding" or "answering"
+    language: str | None = None
+    starter_code: str | None = None
+    test_code: str | None = None
+    expected_answer: str | None = None
+
+
+class TaskUpdate(BaseModel):
+    title: str | None = None
+    description: str | None = None
+    language: str | None = None
+    starter_code: str | None = None
+    test_code: str | None = None
+    expected_answer: str | None = None
+
+
+class TaskSubmit(BaseModel):
+    answer: str
+
+
+class TaskResponse(BaseModel):
+    id: UUID
+    tag_id: UUID
+    title: str
+    description: str
+    task_type: str
+    status: str
+    result: str | None
+    language: str | None
+    starter_code: str | None
+    test_code: str | None
+    expected_answer: str | None
+    user_answer: str | None
+    created_at: datetime
+    updated_at: datetime
+
+    model_config = {"from_attributes": True}
+
+
+class TaskListItem(BaseModel):
+    id: UUID
+    tag_id: UUID
+    title: str
+    task_type: str
+    status: str
+    result: str | None
+
+    model_config = {"from_attributes": True}
+
+
+class TagTaskStats(BaseModel):
+    tag_id: UUID
+    pending: int
+    completed: int
+    correct: int
+    wrong: int

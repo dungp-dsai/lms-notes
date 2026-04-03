@@ -27,6 +27,7 @@ class Tag(Base):
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
 
     notes: Mapped[list["Note"]] = relationship(secondary=note_tags, back_populates="tags")
+    tasks: Mapped[list["Task"]] = relationship(back_populates="tag", cascade="all, delete-orphan")
 
 
 class Note(Base):
@@ -72,3 +73,33 @@ class Image(Base):
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
 
     note: Mapped["Note | None"] = relationship(back_populates="images")
+
+
+class Task(Base):
+    __tablename__ = "tasks"
+
+    id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    tag_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("tags.id", ondelete="CASCADE"), nullable=False)
+    title: Mapped[str] = mapped_column(String(500), nullable=False)
+    description: Mapped[str] = mapped_column(Text, nullable=False, default="")
+    task_type: Mapped[str] = mapped_column(String(20), nullable=False)  # "coding" or "answering"
+    status: Mapped[str] = mapped_column(String(20), nullable=False, default="pending")  # "pending" or "completed"
+    result: Mapped[str | None] = mapped_column(String(20), nullable=True)  # "correct", "wrong", or null
+
+    # For coding tasks
+    language: Mapped[str | None] = mapped_column(String(50), nullable=True)  # e.g., "python", "javascript"
+    starter_code: Mapped[str | None] = mapped_column(Text, nullable=True)
+    test_code: Mapped[str | None] = mapped_column(Text, nullable=True)
+
+    # For answering tasks
+    expected_answer: Mapped[str | None] = mapped_column(Text, nullable=True)
+
+    # User's submission
+    user_answer: Mapped[str | None] = mapped_column(Text, nullable=True)
+
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now(), onupdate=lambda: datetime.now(timezone.utc)
+    )
+
+    tag: Mapped["Tag"] = relationship(back_populates="tasks")

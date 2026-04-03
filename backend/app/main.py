@@ -3,7 +3,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 
 from .config import settings
-from .routers import images, notes, tags
+from .routers import images, notes, tags, tasks
 
 app = FastAPI(title="LMS Notes API")
 
@@ -18,6 +18,7 @@ app.add_middleware(
 app.include_router(notes.router, prefix="/api")
 app.include_router(images.router, prefix="/api")
 app.include_router(tags.router, prefix="/api")
+app.include_router(tasks.router, prefix="/api")
 
 app.mount("/uploads", StaticFiles(directory=str(settings.upload_dir)), name="uploads")
 
