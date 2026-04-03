@@ -38,8 +38,8 @@ async def get_task(task_id: uuid.UUID, db: AsyncSession = Depends(get_db)):
 
 @router.post("/tasks", response_model=TaskResponse, status_code=201)
 async def create_task(body: TaskCreate, db: AsyncSession = Depends(get_db)):
-    if body.task_type not in ("coding", "answering"):
-        raise HTTPException(status_code=400, detail="task_type must be 'coding' or 'answering'")
+    if body.task_type not in ("coding", "answering", "revising"):
+        raise HTTPException(status_code=400, detail="task_type must be 'coding', 'answering', or 'revising'")
     return await task_service.create_task(
         db,
         tag_id=body.tag_id,

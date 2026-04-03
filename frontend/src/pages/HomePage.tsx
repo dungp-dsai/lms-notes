@@ -11,6 +11,7 @@ import {
   Clock,
   CheckCircle2,
   XCircle,
+  Settings,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
@@ -21,6 +22,7 @@ import {
   useTasks,
 } from "@/hooks/useNotes";
 import { cn } from "@/lib/utils";
+import { SettingsModal } from "@/components/SettingsModal";
 
 const TAG_COLORS = [
   "#8b5cf6",
@@ -40,6 +42,7 @@ export function HomePage() {
   const { data: taskStats = [] } = useTaskStats();
   const createNote = useCreateNote();
   const [expandedTag, setExpandedTag] = useState<string | null>(null);
+  const [showSettings, setShowSettings] = useState(false);
 
   const taskStatsMap = useMemo(() => {
     const map = new Map<
@@ -101,10 +104,20 @@ export function HomePage() {
               {notes.length} {notes.length === 1 ? "card" : "cards"} total
             </p>
           </div>
-          <Button onClick={handleCreateNote} disabled={createNote.isPending}>
-            <Plus className="h-4 w-4 mr-2" />
-            Add Card
-          </Button>
+          <div className="flex items-center gap-2">
+            <Button
+              variant="outline"
+              size="icon"
+              onClick={() => setShowSettings(true)}
+              title="Settings"
+            >
+              <Settings className="h-4 w-4" />
+            </Button>
+            <Button onClick={handleCreateNote} disabled={createNote.isPending}>
+              <Plus className="h-4 w-4 mr-2" />
+              Add Card
+            </Button>
+          </div>
         </div>
 
         <div className="grid gap-4">
@@ -163,6 +176,11 @@ export function HomePage() {
           </Button>
         </div>
       </div>
+
+      <SettingsModal
+        isOpen={showSettings}
+        onClose={() => setShowSettings(false)}
+      />
     </div>
   );
 }

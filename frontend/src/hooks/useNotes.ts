@@ -185,3 +185,37 @@ export function useDeleteTask() {
     },
   });
 }
+
+export function useAllSettings() {
+  return useQuery({
+    queryKey: ["settings"],
+    queryFn: api.listSettings,
+  });
+}
+
+export function useTagSettings(tagId: string | null) {
+  return useQuery({
+    queryKey: ["settings", tagId],
+    queryFn: () => api.getSettings(tagId!),
+    enabled: !!tagId,
+  });
+}
+
+export function useUpdateSettings() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({
+      tagId,
+      ...data
+    }: {
+      tagId: string;
+      coding?: { frequency: number; times: string[] };
+      answering?: { frequency: number; times: string[] };
+      revising?: { frequency: number; times: string[] };
+    }) => api.updateSettings(tagId, data),
+    onSuccess: (_data, variables) => {
+      qc.invalidateQueries({ queryKey: ["settings", variables.tagId] });
+      qc.invalidateQueries({ queryKey: ["settings"] });
+    },
+  });
+}

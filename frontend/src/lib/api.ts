@@ -70,6 +70,18 @@ export interface TagTaskStats {
   wrong: number;
 }
 
+export interface TaskFrequencyConfig {
+  frequency: number;
+  times: string[];
+}
+
+export interface TagSettings {
+  tag_id: string;
+  coding: TaskFrequencyConfig;
+  answering: TaskFrequencyConfig;
+  revising: TaskFrequencyConfig;
+}
+
 const API_HOST = import.meta.env.VITE_API_URL || "";
 const BASE = `${API_HOST}/api`;
 
@@ -191,4 +203,18 @@ export const api = {
     }),
 
   deleteTask: (id: string) => request<void>(`/tasks/${id}`, { method: "DELETE" }),
+
+  listSettings: () => request<TagSettings[]>("/settings"),
+
+  getSettings: (tagId: string) => request<TagSettings>(`/settings/${tagId}`),
+
+  updateSettings: (tagId: string, data: Partial<{
+    coding: TaskFrequencyConfig;
+    answering: TaskFrequencyConfig;
+    revising: TaskFrequencyConfig;
+  }>) =>
+    request<TagSettings>(`/settings/${tagId}`, {
+      method: "PUT",
+      body: JSON.stringify(data),
+    }),
 };

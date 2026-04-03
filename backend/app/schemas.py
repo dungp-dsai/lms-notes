@@ -131,3 +131,23 @@ class TagTaskStats(BaseModel):
     completed: int
     correct: int
     wrong: int
+
+
+class TaskFrequencyConfig(BaseModel):
+    frequency: int = 0  # 0 = disabled, 1/2/3 = times per day
+    times: list[str] = []  # e.g., ["09:00", "14:00", "19:00"]
+
+
+class TagSettingsUpdate(BaseModel):
+    coding: TaskFrequencyConfig | None = None
+    answering: TaskFrequencyConfig | None = None
+    revising: TaskFrequencyConfig | None = None
+
+
+class TagSettingsResponse(BaseModel):
+    tag_id: UUID
+    coding: TaskFrequencyConfig
+    answering: TaskFrequencyConfig
+    revising: TaskFrequencyConfig
+
+    model_config = {"from_attributes": True}
