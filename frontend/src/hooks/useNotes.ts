@@ -1,10 +1,10 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { api } from "@/lib/api";
 
-export function useNoteList(tagId?: string | null) {
+export function useNoteList(tagId?: string | null, untagged?: boolean) {
   return useQuery({
-    queryKey: ["notes", { tagId }],
-    queryFn: () => api.listNotes(tagId || undefined),
+    queryKey: ["notes", { tagId, untagged }],
+    queryFn: () => api.listNotes(tagId || undefined, untagged),
   });
 }
 

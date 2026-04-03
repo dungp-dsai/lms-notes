@@ -1,5 +1,7 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { AppLayout } from "@/components/layout/AppLayout";
+import { BrowserRouter, Routes, Route } from "react-router-dom";
+import { HomePage } from "@/pages/HomePage";
+import { NotesPage } from "@/pages/NotesPage";
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -13,7 +15,13 @@ const queryClient = new QueryClient({
 function App() {
   return (
     <QueryClientProvider client={queryClient}>
-      <AppLayout />
+      <BrowserRouter>
+        <Routes>
+          <Route path="/" element={<HomePage />} />
+          <Route path="/notes" element={<NotesPage />} />
+          <Route path="/notes/:noteId" element={<NotesPage />} />
+        </Routes>
+      </BrowserRouter>
     </QueryClientProvider>
   );
 }

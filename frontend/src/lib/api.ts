@@ -60,8 +60,13 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
 }
 
 export const api = {
-  listNotes: (tagId?: string) =>
-    request<NoteListItem[]>(tagId ? `/notes?tag_id=${tagId}` : "/notes"),
+  listNotes: (tagId?: string, untagged?: boolean) => {
+    const params = new URLSearchParams();
+    if (tagId) params.set("tag_id", tagId);
+    if (untagged) params.set("untagged", "true");
+    const query = params.toString();
+    return request<NoteListItem[]>(query ? `/notes?${query}` : "/notes");
+  },
 
   getNote: (id: string) => request<NoteDetail>(`/notes/${id}`),
 

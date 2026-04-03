@@ -8,10 +8,17 @@ from ..models import Note, NoteLink, Tag
 from .link_parser import extract_link_titles
 
 
-async def list_notes(db: AsyncSession, tag_id: uuid.UUID | None = None) -> list[Note]:
+async def list_notes(
+    db: AsyncSession, tag_id: uuid.UUID | None = None, untagged: bool = False
+) -> list[Note]:
     query = select(Note).options(selectinload(Note.tags)).order_by(Note.updated_at.desc())
     if tag_id:
         query = query.join(Note.tags).where(Tag.id == tag_id)
+    elif untagged:
+        from sqlalchemy import not_, exists
+        from ..models import note_tags
+        subq = select(note_tags.c.note_id).where(note_tags.c.note_id == Note.id)
+        query = query.where(not_(exists(subq)))
     result = await db.execute(query)
     return list(result.scalars().all())
 

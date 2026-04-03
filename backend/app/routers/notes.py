@@ -13,9 +13,10 @@ router = APIRouter(tags=["notes"])
 @router.get("/notes", response_model=list[NoteListItem])
 async def list_notes(
     tag_id: uuid.UUID | None = Query(None, description="Filter by tag ID"),
+    untagged: bool = Query(False, description="Filter notes with no tags"),
     db: AsyncSession = Depends(get_db),
 ):
-    return await note_service.list_notes(db, tag_id=tag_id)
+    return await note_service.list_notes(db, tag_id=tag_id, untagged=untagged)
 
 
 @router.post("/notes", response_model=NoteDetail, status_code=201)

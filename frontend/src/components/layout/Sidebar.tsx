@@ -18,6 +18,8 @@ interface SidebarProps {
   onSelectNote: (id: string) => void;
   selectedTagId: string | null;
   onSelectTag: (tagId: string | null) => void;
+  showUntagged?: boolean;
+  onToggleUntagged?: (untagged: boolean) => void;
 }
 
 export function Sidebar({
@@ -25,12 +27,14 @@ export function Sidebar({
   onSelectNote,
   selectedTagId,
   onSelectTag,
+  showUntagged = false,
+  onToggleUntagged,
 }: SidebarProps) {
   const [search, setSearch] = useState("");
   const [newTagName, setNewTagName] = useState("");
   const [showTagInput, setShowTagInput] = useState(false);
 
-  const { data: notes = [], isLoading } = useNoteList(selectedTagId);
+  const { data: notes = [], isLoading } = useNoteList(selectedTagId, showUntagged);
   const { data: tags = [] } = useTags();
   const createNote = useCreateNote();
   const deleteNote = useDeleteNote();
@@ -73,7 +77,7 @@ export function Sidebar({
   };
 
   return (
-    <div className="flex h-full w-64 flex-col border-r border-sidebar-border bg-sidebar text-sidebar-foreground">
+    <div className="flex h-full flex-col bg-sidebar text-sidebar-foreground">
       <div className="flex items-center gap-2 p-3">
         <h1 className="text-sm font-semibold tracking-tight flex-1">Notes</h1>
         <Button
@@ -148,6 +152,19 @@ export function Sidebar({
               />
             </button>
           ))}
+          {onToggleUntagged && (
+            <button
+              onClick={() => onToggleUntagged(!showUntagged)}
+              className={cn(
+                "text-xs px-2 py-0.5 rounded-md transition-colors cursor-pointer border border-dashed",
+                showUntagged
+                  ? "border-foreground/50 bg-accent/50 text-foreground"
+                  : "border-border text-muted-foreground hover:border-foreground/30 hover:text-foreground"
+              )}
+            >
+              Untagged
+            </button>
+          )}
         </div>
       </div>
 
@@ -164,6 +181,8 @@ export function Sidebar({
                 ? "No matching notes"
                 : selectedTagId
                 ? "No notes with this tag"
+                : showUntagged
+                ? "No untagged notes"
                 : "No notes yet. Click + to create one."}
             </div>
           )}
