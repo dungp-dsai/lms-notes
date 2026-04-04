@@ -72,6 +72,7 @@ class Image(Base):
     filename: Mapped[str] = mapped_column(String(500), nullable=False)
     original_name: Mapped[str] = mapped_column(String(500), nullable=False, default="pasted_image.png")
     mime_type: Mapped[str] = mapped_column(String(100), nullable=False, default="image/png")
+    url: Mapped[str] = mapped_column(String(1000), nullable=False, default="")
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
 
     note: Mapped["Note | None"] = relationship(back_populates="images")

@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { useEditor, EditorContent } from "@tiptap/react";
 import type { Editor } from "@tiptap/react";
 import StarterKit from "@tiptap/starter-kit";
@@ -7,7 +7,7 @@ import Placeholder from "@tiptap/extension-placeholder";
 import Underline from "@tiptap/extension-underline";
 import TaskList from "@tiptap/extension-task-list";
 import TaskItem from "@tiptap/extension-task-item";
-import { X, FileText } from "lucide-react";
+import { X, FileText, Save } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { ImagePaste } from "@/components/editor/extensions/image-paste";
@@ -26,28 +26,28 @@ export function OriginalTextModal({
   originalText,
   onSave,
 }: OriginalTextModalProps) {
-  const saveTimer = useRef<ReturnType<typeof setTimeout>>(null);
-  const skipNextUpdate = useRef(false);
-  const lastContent = useRef<string>(originalText);
+  const [hasChanges, setHasChanges] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [saved, setSaved] = useState(false);
+  const initialContent = useRef<string>(originalText);
 
-  const debouncedSave = useCallback(
-    (content: string) => {
-      lastContent.current = content;
-      if (saveTimer.current) clearTimeout(saveTimer.current);
-      saveTimer.current = setTimeout(() => {
-        onSave(content);
-      }, 500);
-    },
-    [onSave]
-  );
+  const handleSave = useCallback(() => {
+    if (!editor) return;
+    setSaving(true);
+    onSave(editor.getHTML());
+    initialContent.current = editor.getHTML();
+    setHasChanges(false);
+    setTimeout(() => {
+      setSaving(false);
+      setSaved(true);
+      setTimeout(() => setSaved(false), 2000);
+    }, 300);
+  }, [onSave]);
 
   const handleClose = useCallback(() => {
-    if (saveTimer.current) clearTimeout(saveTimer.current);
-    if (lastContent.current !== originalText) {
-      onSave(lastContent.current);
-    }
+    setHasChanges(false);
     onClose();
-  }, [onClose, onSave, originalText]);
+  }, [onClose]);
 
   const editor: Editor | null = useEditor({
     extensions: [
@@ -62,11 +62,7 @@ export function OriginalTextModal({
       ImagePaste,
     ],
     onUpdate: ({ editor: ed }) => {
-      if (skipNextUpdate.current) {
-        skipNextUpdate.current = false;
-        return;
-      }
-      debouncedSave(ed.getHTML());
+      setHasChanges(ed.getHTML() !== initialContent.current);
     },
     editorProps: {
       attributes: {
@@ -77,12 +73,9 @@ export function OriginalTextModal({
 
   useEffect(() => {
     if (editor && isOpen) {
-      lastContent.current = originalText;
-      const currentHTML = editor.getHTML();
-      if (currentHTML !== originalText) {
-        skipNextUpdate.current = true;
-        editor.commands.setContent(originalText || "");
-      }
+      initialContent.current = originalText;
+      editor.commands.setContent(originalText || "");
+      setHasChanges(false);
     }
   }, [originalText, editor, isOpen]);
 
@@ -92,13 +85,21 @@ export function OriginalTextModal({
         handleClose();
       }
     };
+    const handleCmdS = (e: KeyboardEvent) => {
+      if ((e.metaKey || e.ctrlKey) && e.key === "s") {
+        e.preventDefault();
+        handleSave();
+      }
+    };
     if (isOpen) {
       document.addEventListener("keydown", handleEscape);
+      document.addEventListener("keydown", handleCmdS);
     }
     return () => {
       document.removeEventListener("keydown", handleEscape);
+      document.removeEventListener("keydown", handleCmdS);
     };
-  }, [isOpen, handleClose]);
+  }, [isOpen, handleClose, handleSave]);
 
   if (!isOpen) return null;
 
@@ -125,8 +126,26 @@ export function OriginalTextModal({
           <EditorContent editor={editor} />
         </ScrollArea>
 
-        <div className="px-4 py-3 border-t border-border text-xs text-muted-foreground">
-          Changes are saved automatically
+        <div className="flex items-center justify-between px-4 py-3 border-t border-border">
+          <span className="text-xs text-muted-foreground">
+            {hasChanges ? "Unsaved changes" : "No changes"}
+          </span>
+          <div className="flex items-center gap-3">
+            {saved && (
+              <span className="text-xs text-green-500 font-medium animate-in fade-in">
+                Saved!
+              </span>
+            )}
+            <Button
+              onClick={handleSave}
+              disabled={!hasChanges || saving}
+              size="sm"
+              className="gap-2"
+            >
+              <Save className="h-4 w-4" />
+              {saving ? "Saving..." : "Save"}
+            </Button>
+          </div>
         </div>
       </div>
     </div>

@@ -8,8 +8,17 @@ class Settings(BaseSettings):
     allowed_origins: str = "http://localhost:5173"
     telegram_bot_token: str = ""
     telegram_chat_id: str = ""
+    aws_access_key_id: str = ""
+    aws_secret_access_key: str = ""
+    aws_region: str = "us-east-1"
+    aws_bucket_name: str = ""
 
-    model_config = {"env_prefix": "LMS_"}
+    model_config = {
+        "env_prefix": "LMS_",
+        "env_file": ".env",
+        "env_file_encoding": "utf-8",
+        "extra": "ignore",
+    }
 
 
 settings = Settings()
