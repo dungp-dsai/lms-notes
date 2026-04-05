@@ -87,12 +87,15 @@ class TagSettings(Base):
     # Frequency: 0 = disabled, 1/2/3 = times per day
     coding_frequency: Mapped[int] = mapped_column(default=0)
     coding_times: Mapped[str] = mapped_column(String(100), default="")  # comma-separated times like "09:00,14:00,19:00"
+    coding_quantity: Mapped[int] = mapped_column(default=1)  # how many per notification
 
     answering_frequency: Mapped[int] = mapped_column(default=0)
     answering_times: Mapped[str] = mapped_column(String(100), default="")
+    answering_quantity: Mapped[int] = mapped_column(default=1)
 
     revising_frequency: Mapped[int] = mapped_column(default=0)
     revising_times: Mapped[str] = mapped_column(String(100), default="")
+    revising_quantity: Mapped[int] = mapped_column(default=3)  # default 3 cards for revising
 
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
     updated_at: Mapped[datetime] = mapped_column(

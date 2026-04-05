@@ -74,6 +74,7 @@ export interface TagTaskStats {
 export interface TaskFrequencyConfig {
   frequency: number;
   times: string[];
+  quantity: number;
 }
 
 export interface TagSettings {

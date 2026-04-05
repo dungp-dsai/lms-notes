@@ -122,8 +122,10 @@ export function OriginalTextModal({
 
         {editor && <Toolbar editor={editor} />}
 
-        <ScrollArea className="flex-1 min-h-0">
-          <EditorContent editor={editor} />
+        <ScrollArea className="flex-1 min-h-0 overflow-auto">
+          <div className="max-h-[calc(85vh-180px)] overflow-y-auto">
+            <EditorContent editor={editor} />
+          </div>
         </ScrollArea>
 
         <div className="flex items-center justify-between px-4 py-3 border-t border-border">

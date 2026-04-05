@@ -16,14 +16,17 @@ def _settings_to_response(settings) -> TagSettingsResponse:
         coding=TaskFrequencyConfig(
             frequency=settings.coding_frequency,
             times=settings.coding_times.split(",") if settings.coding_times else [],
+            quantity=settings.coding_quantity,
         ),
         answering=TaskFrequencyConfig(
             frequency=settings.answering_frequency,
             times=settings.answering_times.split(",") if settings.answering_times else [],
+            quantity=settings.answering_quantity,
         ),
         revising=TaskFrequencyConfig(
             frequency=settings.revising_frequency,
             times=settings.revising_times.split(",") if settings.revising_times else [],
+            quantity=settings.revising_quantity,
         ),
     )
 
@@ -51,9 +54,12 @@ async def update_settings(
         tag_id,
         coding_frequency=body.coding.frequency if body.coding else None,
         coding_times=body.coding.times if body.coding else None,
+        coding_quantity=body.coding.quantity if body.coding else None,
         answering_frequency=body.answering.frequency if body.answering else None,
         answering_times=body.answering.times if body.answering else None,
+        answering_quantity=body.answering.quantity if body.answering else None,
         revising_frequency=body.revising.frequency if body.revising else None,
         revising_times=body.revising.times if body.revising else None,
+        revising_quantity=body.revising.quantity if body.revising else None,
     )
     return _settings_to_response(settings)

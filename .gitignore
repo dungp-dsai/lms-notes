@@ -30,3 +30,7 @@ backend/uploads/*
 .DS_Store
 Thumbs.db
 .cursor/
+
+
+# experiment
+experiment/

@@ -5,7 +5,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
 from ..models import Note, NoteLink, Tag
-from .link_parser import extract_link_titles
+from .link_parser import extract_link_titles, update_wiki_link_title
 
 
 async def list_notes(
@@ -63,6 +63,10 @@ async def update_note(
     note = result.scalar_one_or_none()
     if note is None:
         return None
+    
+    old_title = note.title
+    title_changed = title is not None and title != old_title
+    
     if title is not None:
         note.title = title
     if content is not None:
@@ -74,6 +78,11 @@ async def update_note(
         note.tags = list(tags_result.scalars().all())
     await db.flush()
     await _sync_links(db, note)
+    
+    # If title changed, update wiki-links in all notes that link to this note
+    if title_changed:
+        await _update_incoming_link_titles(db, note_id, old_title, title)
+    
     await db.commit()
     await db.refresh(note, ["tags"])
     return note
@@ -116,3 +125,24 @@ async def _sync_links(db: AsyncSession, note: Note) -> None:
         target = result.scalar_one_or_none()
         if target and target.id != note.id:
             db.add(NoteLink(source_note_id=note.id, target_note_id=target.id))
+
+
+async def _update_incoming_link_titles(
+    db: AsyncSession, note_id: uuid.UUID, old_title: str, new_title: str
+) -> None:
+    """Update wiki-link titles in all notes that link to this note."""
+    # Find all notes that have links pointing to this note
+    result = await db.execute(
+        select(Note)
+        .join(NoteLink, NoteLink.source_note_id == Note.id)
+        .where(NoteLink.target_note_id == note_id)
+    )
+    linking_notes = list(result.scalars().all())
+    
+    note_id_str = str(note_id)
+    for linking_note in linking_notes:
+        updated_content = update_wiki_link_title(
+            linking_note.content, note_id_str, old_title, new_title
+        )
+        if updated_content != linking_note.content:
+            linking_note.content = updated_content

@@ -139,6 +139,7 @@ class TagTaskStats(BaseModel):
 class TaskFrequencyConfig(BaseModel):
     frequency: int = 0  # 0 = disabled, 1/2/3 = times per day
     times: list[str] = []  # e.g., ["09:00", "14:00", "19:00"]
+    quantity: int = 1  # how many items per notification
 
 
 class TagSettingsUpdate(BaseModel):

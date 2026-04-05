@@ -1,9 +1,15 @@
 import { useState, useEffect } from "react";
-import { X, Settings, Code, MessageSquare, BookOpen, Clock, Send, RefreshCw } from "lucide-react";
+import { X, Settings, Code, MessageSquare, BookOpen, Clock, Send, RefreshCw, Info } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useTagSettings, useUpdateSettings, useTags, useScheduledJobs, useTestTelegram, useSyncScheduler } from "@/hooks/useNotes";
 import { cn } from "@/lib/utils";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 
 interface SettingsModalProps {
   isOpen: boolean;
@@ -231,9 +237,9 @@ function TagSettingsPanel({ tagId }: { tagId: string }) {
   const updateSettings = useUpdateSettings();
   const [saved, setSaved] = useState(false);
 
-  const [coding, setCoding] = useState({ frequency: 0, times: [] as string[] });
-  const [answering, setAnswering] = useState({ frequency: 0, times: [] as string[] });
-  const [revising, setRevising] = useState({ frequency: 0, times: [] as string[] });
+  const [coding, setCoding] = useState({ frequency: 0, times: [] as string[], quantity: 1 });
+  const [answering, setAnswering] = useState({ frequency: 0, times: [] as string[], quantity: 1 });
+  const [revising, setRevising] = useState({ frequency: 0, times: [] as string[], quantity: 3 });
 
   useEffect(() => {
     if (settings) {
@@ -270,23 +276,29 @@ function TagSettingsPanel({ tagId }: { tagId: string }) {
     <div className="space-y-6">
       <TaskTypeSettings
         icon={<Code className="h-4 w-4 text-blue-500" />}
-        label="Coding Tasks"
+        label="Coding"
+        tooltip="Coding challenges to practice programming skills"
         config={coding}
         onChange={setCoding}
+        quantityLabel="challenges"
       />
 
       <TaskTypeSettings
         icon={<MessageSquare className="h-4 w-4 text-purple-500" />}
-        label="Answering Tasks"
+        label="Q&A"
+        tooltip="Questions to test your understanding of concepts"
         config={answering}
         onChange={setAnswering}
+        quantityLabel="questions"
       />
 
       <TaskTypeSettings
         icon={<BookOpen className="h-4 w-4 text-green-500" />}
-        label="Revising Cards"
+        label="Revising"
+        tooltip="Flashcards for spaced repetition review"
         config={revising}
         onChange={setRevising}
+        quantityLabel="cards"
       />
 
       <div className="pt-4 border-t border-border">
@@ -305,14 +317,16 @@ function TagSettingsPanel({ tagId }: { tagId: string }) {
 interface TaskTypeSettingsProps {
   icon: React.ReactNode;
   label: string;
-  config: { frequency: number; times: string[] };
-  onChange: (config: { frequency: number; times: string[] }) => void;
+  tooltip: string;
+  config: { frequency: number; times: string[]; quantity: number };
+  onChange: (config: { frequency: number; times: string[]; quantity: number }) => void;
+  quantityLabel: string;
 }
 
-function TaskTypeSettings({ icon, label, config, onChange }: TaskTypeSettingsProps) {
+function TaskTypeSettings({ icon, label, tooltip, config, onChange, quantityLabel }: TaskTypeSettingsProps) {
   const handleFrequencyChange = (frequency: number) => {
     const times = DEFAULT_TIMES[frequency] || [];
-    onChange({ frequency, times });
+    onChange({ ...config, frequency, times });
   };
 
   const handleTimeChange = (index: number, value: string) => {
@@ -321,45 +335,84 @@ function TaskTypeSettings({ icon, label, config, onChange }: TaskTypeSettingsPro
     onChange({ ...config, times: newTimes });
   };
 
+  const handleQuantityChange = (quantity: number) => {
+    onChange({ ...config, quantity: Math.max(1, Math.min(20, quantity)) });
+  };
+
   return (
-    <div className="space-y-3">
-      <div className="flex items-center gap-2">
-        {icon}
-        <span className="font-medium text-sm">{label}</span>
-      </div>
+    <TooltipProvider>
+      <div className="space-y-3">
+        <div className="flex items-center gap-2">
+          {icon}
+          <span className="font-medium text-sm">{label}</span>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Info className="h-3.5 w-3.5 text-muted-foreground cursor-help" />
+            </TooltipTrigger>
+            <TooltipContent>
+              <p>{tooltip}</p>
+            </TooltipContent>
+          </Tooltip>
+        </div>
 
-      <div className="flex gap-2">
-        {FREQUENCY_OPTIONS.map((opt) => (
-          <button
-            key={opt.value}
-            onClick={() => handleFrequencyChange(opt.value)}
-            className={cn(
-              "px-3 py-1.5 rounded-md text-xs font-medium transition-colors",
-              config.frequency === opt.value
-                ? "bg-primary text-primary-foreground"
-                : "bg-muted text-muted-foreground hover:bg-accent"
-            )}
-          >
-            {opt.label}
-          </button>
-        ))}
-      </div>
+        <div className="flex items-center gap-4">
+          <div className="flex gap-2">
+            {FREQUENCY_OPTIONS.map((opt) => (
+              <button
+                key={opt.value}
+                onClick={() => handleFrequencyChange(opt.value)}
+                className={cn(
+                  "px-3 py-1.5 rounded-md text-xs font-medium transition-colors",
+                  config.frequency === opt.value
+                    ? "bg-primary text-primary-foreground"
+                    : "bg-muted text-muted-foreground hover:bg-accent"
+                )}
+              >
+                {opt.label}
+              </button>
+            ))}
+          </div>
 
-      {config.frequency > 0 && (
-        <div className="flex flex-wrap gap-2 pl-6">
-          {config.times.map((time, index) => (
-            <div key={index} className="flex items-center gap-1">
-              <span className="text-xs text-muted-foreground">Time {index + 1}:</span>
+          {config.frequency > 0 && (
+            <div className="flex items-center gap-2 ml-auto">
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <span className="text-xs text-muted-foreground cursor-help whitespace-nowrap">
+                    Qty:
+                  </span>
+                </TooltipTrigger>
+                <TooltipContent>
+                  <p>Number of {quantityLabel} per notification</p>
+                </TooltipContent>
+              </Tooltip>
               <Input
-                type="time"
-                value={time}
-                onChange={(e) => handleTimeChange(index, e.target.value)}
-                className="w-28 h-8 text-xs"
+                type="number"
+                min={1}
+                max={20}
+                value={config.quantity}
+                onChange={(e) => handleQuantityChange(parseInt(e.target.value) || 1)}
+                className="w-16 h-8 text-xs text-center"
               />
             </div>
-          ))}
+          )}
         </div>
-      )}
-    </div>
+
+        {config.frequency > 0 && (
+          <div className="flex flex-wrap gap-2 pl-6">
+            {config.times.map((time, index) => (
+              <div key={index} className="flex items-center gap-1">
+                <span className="text-xs text-muted-foreground">Time {index + 1}:</span>
+                <Input
+                  type="time"
+                  value={time}
+                  onChange={(e) => handleTimeChange(index, e.target.value)}
+                  className="w-28 h-8 text-xs"
+                />
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+    </TooltipProvider>
   );
 }

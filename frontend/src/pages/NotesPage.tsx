@@ -1,9 +1,13 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { useNavigate, useParams, useSearchParams } from "react-router-dom";
 import { Home } from "lucide-react";
 import { Sidebar } from "@/components/layout/Sidebar";
 import { NoteEditor } from "@/components/editor/NoteEditor";
 import { Button } from "@/components/ui/button";
+
+const MIN_SIDEBAR_WIDTH = 200;
+const MAX_SIDEBAR_WIDTH = 500;
+const DEFAULT_SIDEBAR_WIDTH = 256;
 
 export function NotesPage() {
   const navigate = useNavigate();
@@ -16,6 +20,36 @@ export function NotesPage() {
   const [showUntagged, setShowUntagged] = useState<boolean>(
     searchParams.get("untagged") === "true"
   );
+  const [sidebarWidth, setSidebarWidth] = useState(DEFAULT_SIDEBAR_WIDTH);
+  const [isResizing, setIsResizing] = useState(false);
+  const sidebarRef = useRef<HTMLDivElement>(null);
+
+  const handleMouseDown = useCallback((e: React.MouseEvent) => {
+    e.preventDefault();
+    setIsResizing(true);
+  }, []);
+
+  useEffect(() => {
+    const handleMouseMove = (e: MouseEvent) => {
+      if (!isResizing) return;
+      const newWidth = Math.min(MAX_SIDEBAR_WIDTH, Math.max(MIN_SIDEBAR_WIDTH, e.clientX));
+      setSidebarWidth(newWidth);
+    };
+
+    const handleMouseUp = () => {
+      setIsResizing(false);
+    };
+
+    if (isResizing) {
+      document.addEventListener("mousemove", handleMouseMove);
+      document.addEventListener("mouseup", handleMouseUp);
+    }
+
+    return () => {
+      document.removeEventListener("mousemove", handleMouseMove);
+      document.removeEventListener("mouseup", handleMouseUp);
+    };
+  }, [isResizing]);
 
   useEffect(() => {
     if (noteId) {
@@ -61,8 +95,12 @@ export function NotesPage() {
   };
 
   return (
-    <div className="flex h-screen overflow-hidden">
-      <div className="flex h-full w-64 flex-col border-r border-sidebar-border bg-sidebar">
+    <div className={`flex h-screen overflow-hidden ${isResizing ? "select-none" : ""}`}>
+      <div
+        ref={sidebarRef}
+        style={{ width: sidebarWidth }}
+        className="flex h-full flex-col border-r border-sidebar-border bg-sidebar relative shrink-0"
+      >
         <div className="p-2 border-b border-sidebar-border">
           <Button
             variant="ghost"
@@ -83,6 +121,12 @@ export function NotesPage() {
             showUntagged={showUntagged}
             onToggleUntagged={handleToggleUntagged}
           />
+        </div>
+        <div
+          onMouseDown={handleMouseDown}
+          className="absolute top-0 right-0 w-1 h-full cursor-col-resize hover:bg-primary/50 transition-colors group"
+        >
+          <div className="absolute top-0 right-0 w-1 h-full group-hover:bg-primary/50" />
         </div>
       </div>
       <main className="flex-1 overflow-hidden">

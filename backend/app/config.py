@@ -12,10 +12,12 @@ class Settings(BaseSettings):
     aws_secret_access_key: str = ""
     aws_region: str = "us-east-1"
     aws_bucket_name: str = ""
+    google_api_key: str = ""
+    openai_api_key: str = ""
 
     model_config = {
         "env_prefix": "LMS_",
-        "env_file": ".env",
+        "env_file": Path(__file__).resolve().parent.parent / ".env",
         "env_file_encoding": "utf-8",
         "extra": "ignore",
     }
