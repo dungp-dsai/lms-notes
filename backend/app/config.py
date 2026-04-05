@@ -14,6 +14,12 @@ class Settings(BaseSettings):
     aws_bucket_name: str = ""
     google_api_key: str = ""
     openai_api_key: str = ""
+    
+    # LangSmith configuration for AI tracing
+    langsmith_api_key: str = ""
+    langsmith_project: str = "lms-revisions"
+    langsmith_endpoint: str = "https://api.smith.langchain.com"
+    langsmith_tracing: bool = False
 
     model_config = {
         "env_prefix": "LMS_",

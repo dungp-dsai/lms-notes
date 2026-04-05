@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import {
   ArrowLeft,
@@ -20,6 +20,12 @@ export function TaskPage() {
   const navigate = useNavigate();
   const { data: task, isLoading } = useTask(taskId || null);
 
+  useEffect(() => {
+    if (task && task.task_type === "revising" && task.note_id) {
+      navigate(`/notes/${task.note_id}?revision=${task.id}`, { replace: true });
+    }
+  }, [task, navigate]);
+
   if (isLoading) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
@@ -37,6 +43,14 @@ export function TaskPage() {
             Go Home
           </Button>
         </div>
+      </div>
+    );
+  }
+
+  if (task.task_type === "revising") {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
       </div>
     );
   }
@@ -95,7 +109,7 @@ interface TaskProps {
     id: string;
     title: string;
     description: string;
-    task_type: "coding" | "answering";
+    task_type: "coding" | "answering" | "revising";
     status: "pending" | "completed";
     result: "correct" | "wrong" | null;
     language: string | null;
@@ -103,6 +117,9 @@ interface TaskProps {
     test_code: string | null;
     expected_answer: string | null;
     user_answer: string | null;
+    note_id: string | null;
+    revision_explanation: string | null;
+    original_note_content: string | null;
   };
 }
 
@@ -282,3 +299,4 @@ function AnsweringTask({ task }: TaskProps) {
     </div>
   );
 }
+

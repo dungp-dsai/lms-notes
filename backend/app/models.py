@@ -38,6 +38,7 @@ class Note(Base):
     title: Mapped[str] = mapped_column(String(500), nullable=False, default="Untitled")
     content: Mapped[str] = mapped_column(Text, nullable=False, default="")
     original_text: Mapped[str] = mapped_column(Text, nullable=False, default="")
+    revision_count: Mapped[int] = mapped_column(default=0)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
     updated_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now(), onupdate=lambda: datetime.now(timezone.utc)
@@ -105,6 +106,20 @@ class TagSettings(Base):
     tag: Mapped["Tag"] = relationship(back_populates="settings")
 
 
+class JobHistory(Base):
+    __tablename__ = "job_history"
+
+    id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    job_id: Mapped[str] = mapped_column(String(200), nullable=False)
+    job_name: Mapped[str] = mapped_column(String(200), nullable=False)
+    tag_name: Mapped[str] = mapped_column(String(100), nullable=False)
+    task_type: Mapped[str] = mapped_column(String(20), nullable=False)
+    status: Mapped[str] = mapped_column(String(20), nullable=False)  # "success" or "failed"
+    message: Mapped[str] = mapped_column(Text, nullable=False, default="")
+    tasks_created: Mapped[int] = mapped_column(default=0)
+    executed_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+
+
 class Task(Base):
     __tablename__ = "tasks"
 
@@ -124,6 +139,11 @@ class Task(Base):
     # For answering tasks
     expected_answer: Mapped[str | None] = mapped_column(Text, nullable=True)
 
+    # For revising tasks
+    note_id: Mapped[uuid.UUID | None] = mapped_column(ForeignKey("notes.id", ondelete="CASCADE"), nullable=True)
+    revision_explanation: Mapped[str | None] = mapped_column(Text, nullable=True)
+    original_note_content: Mapped[str | None] = mapped_column(Text, nullable=True)
+
     # User's submission
     user_answer: Mapped[str | None] = mapped_column(Text, nullable=True)
 
@@ -133,3 +153,4 @@ class Task(Base):
     )
 
     tag: Mapped["Tag"] = relationship(back_populates="tasks")
+    note: Mapped["Note | None"] = relationship()

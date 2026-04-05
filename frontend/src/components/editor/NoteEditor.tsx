@@ -8,8 +8,8 @@ import Underline from "@tiptap/extension-underline";
 import TaskList from "@tiptap/extension-task-list";
 import TaskItem from "@tiptap/extension-task-item";
 import Mention from "@tiptap/extension-mention";
-import { Plus, X, FileText } from "lucide-react";
-import { useNote, useUpdateNote, useBacklinks, useTags } from "@/hooks/useNotes";
+import { Plus, X, FileText, AlertCircle, CheckCircle2 } from "lucide-react";
+import { useNote, useUpdateNote, useBacklinks, useTags, useSubmitRevision } from "@/hooks/useNotes";
 import { OriginalTextModal } from "@/components/OriginalTextModal";
 import { Toolbar } from "./Toolbar";
 import { ImagePaste } from "./extensions/image-paste";
@@ -18,23 +18,59 @@ import { wikiLinkSuggestion } from "./extensions/wiki-link-suggestion";
 import type { WikiLinkSuggestionItem } from "./extensions/wiki-link-suggestion";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
+
+interface RevisionTask {
+  id: string;
+  explanation: string;
+}
 
 interface NoteEditorProps {
   noteId: string;
+  revisionTask?: RevisionTask;
+  onRevisionComplete?: () => void;
 }
 
-export function NoteEditor({ noteId }: NoteEditorProps) {
+export function NoteEditor({ noteId, revisionTask, onRevisionComplete }: NoteEditorProps) {
   const { data: note, isLoading } = useNote(noteId);
   const { data: backlinks = [] } = useBacklinks(noteId);
   const { data: allTags = [] } = useTags();
   const updateNote = useUpdateNote();
+  const submitRevision = useSubmitRevision();
   const [title, setTitle] = useState("");
   const [showTagPicker, setShowTagPicker] = useState(false);
   const [showOriginalText, setShowOriginalText] = useState(false);
+  const [showRevisionBanner, setShowRevisionBanner] = useState(!!revisionTask);
+  const [revisionCompleted, setRevisionCompleted] = useState(false);
   const saveTimer = useRef<ReturnType<typeof setTimeout>>(null);
   const skipNextUpdate = useRef(false);
   const tagPickerRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (revisionTask) {
+      setShowRevisionBanner(true);
+      setRevisionCompleted(false);
+    }
+  }, [revisionTask]);
+
+  const handleCompleteRevision = async () => {
+    if (!revisionTask || !editor) return;
+    
+    try {
+      await submitRevision.mutateAsync({
+        id: revisionTask.id,
+        revisedContent: editor.getHTML(),
+      });
+      setRevisionCompleted(true);
+      setTimeout(() => {
+        setShowRevisionBanner(false);
+        onRevisionComplete?.();
+      }, 2000);
+    } catch (error) {
+      console.error("Failed to complete revision:", error);
+    }
+  };
 
   const noteTags = note?.tags || [];
   const noteTagIds = noteTags.map((t) => t.id);
@@ -184,6 +220,63 @@ export function NoteEditor({ noteId }: NoteEditorProps) {
   return (
     <div className="flex h-full flex-col">
       {editor && <Toolbar editor={editor} />}
+      
+      {showRevisionBanner && revisionTask && (
+        <div className={cn(
+          "mx-6 mt-4 p-4 rounded-lg border transition-all",
+          revisionCompleted 
+            ? "bg-green-500/10 border-green-500/30" 
+            : "bg-amber-500/10 border-amber-500/30"
+        )}>
+          <div className="flex items-start gap-3">
+            {revisionCompleted ? (
+              <CheckCircle2 className="h-5 w-5 text-green-500 mt-0.5 shrink-0" />
+            ) : (
+              <AlertCircle className="h-5 w-5 text-amber-500 mt-0.5 shrink-0" />
+            )}
+            <div className="flex-1 min-w-0">
+              {revisionCompleted ? (
+                <p className="text-sm font-medium text-green-600 dark:text-green-400">
+                  Revision completed! Great job improving your notes.
+                </p>
+              ) : (
+                <>
+                  <p className="text-sm font-medium text-amber-600 dark:text-amber-400 mb-1">
+                    This note needs revision
+                  </p>
+                  <p className="text-sm text-foreground/80">
+                    {revisionTask.explanation}
+                  </p>
+                </>
+              )}
+            </div>
+            <div className="flex items-center gap-2 shrink-0">
+              {!revisionCompleted && (
+                <Button
+                  size="sm"
+                  onClick={handleCompleteRevision}
+                  disabled={submitRevision.isPending}
+                  className="bg-amber-500 hover:bg-amber-600 text-white"
+                >
+                  {submitRevision.isPending ? "Saving..." : "Mark as Revised"}
+                </Button>
+              )}
+              <button
+                onClick={() => {
+                  setShowRevisionBanner(false);
+                  if (!revisionCompleted) {
+                    onRevisionComplete?.();
+                  }
+                }}
+                className="text-muted-foreground hover:text-foreground transition-colors"
+              >
+                <X className="h-4 w-4" />
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+      
       <ScrollArea className="flex-1">
         <div className="max-w-3xl mx-auto w-full">
           <div className="px-6 pt-6">

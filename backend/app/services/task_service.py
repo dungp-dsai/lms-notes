@@ -34,6 +34,9 @@ async def create_task(
     starter_code: str | None = None,
     test_code: str | None = None,
     expected_answer: str | None = None,
+    note_id: uuid.UUID | None = None,
+    revision_explanation: str | None = None,
+    original_note_content: str | None = None,
 ) -> Task:
     task = Task(
         tag_id=tag_id,
@@ -44,6 +47,9 @@ async def create_task(
         starter_code=starter_code,
         test_code=test_code,
         expected_answer=expected_answer,
+        note_id=note_id,
+        revision_explanation=revision_explanation,
+        original_note_content=original_note_content,
     )
     db.add(task)
     await db.commit()

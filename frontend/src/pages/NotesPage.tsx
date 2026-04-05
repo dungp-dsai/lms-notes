@@ -4,6 +4,7 @@ import { Home } from "lucide-react";
 import { Sidebar } from "@/components/layout/Sidebar";
 import { NoteEditor } from "@/components/editor/NoteEditor";
 import { Button } from "@/components/ui/button";
+import { useTask } from "@/hooks/useNotes";
 
 const MIN_SIDEBAR_WIDTH = 200;
 const MAX_SIDEBAR_WIDTH = 500;
@@ -23,6 +24,9 @@ export function NotesPage() {
   const [sidebarWidth, setSidebarWidth] = useState(DEFAULT_SIDEBAR_WIDTH);
   const [isResizing, setIsResizing] = useState(false);
   const sidebarRef = useRef<HTMLDivElement>(null);
+
+  const revisionTaskId = searchParams.get("revision");
+  const { data: revisionTask } = useTask(revisionTaskId);
 
   const handleMouseDown = useCallback((e: React.MouseEvent) => {
     e.preventDefault();
@@ -131,7 +135,18 @@ export function NotesPage() {
       </div>
       <main className="flex-1 overflow-hidden">
         {activeNoteId ? (
-          <NoteEditor key={activeNoteId} noteId={activeNoteId} />
+          <NoteEditor 
+            key={activeNoteId} 
+            noteId={activeNoteId}
+            revisionTask={revisionTaskId && revisionTask ? {
+              id: revisionTask.id,
+              explanation: revisionTask.revision_explanation || "",
+            } : undefined}
+            onRevisionComplete={() => {
+              searchParams.delete("revision");
+              setSearchParams(searchParams);
+            }}
+          />
         ) : (
           <div className="flex h-full items-center justify-center text-muted-foreground">
             <div className="text-center">

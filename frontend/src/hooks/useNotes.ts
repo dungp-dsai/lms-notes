@@ -141,11 +141,14 @@ export function useCreateTask() {
       tag_id: string;
       title: string;
       description?: string;
-      task_type: "coding" | "answering";
+      task_type: "coding" | "answering" | "revising";
       language?: string;
       starter_code?: string;
       test_code?: string;
       expected_answer?: string;
+      note_id?: string;
+      revision_explanation?: string;
+      original_note_content?: string;
     }) => api.createTask(data),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["tasks"] });
@@ -181,6 +184,30 @@ export function useDeleteTask() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: (id: string) => api.deleteTask(id),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["tasks"] });
+    },
+  });
+}
+
+export function useSubmitRevision() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, revisedContent }: { id: string; revisedContent: string }) =>
+      api.submitRevision(id, revisedContent),
+    onSuccess: (_data, variables) => {
+      qc.invalidateQueries({ queryKey: ["tasks", variables.id] });
+      qc.invalidateQueries({ queryKey: ["tasks"] });
+      qc.invalidateQueries({ queryKey: ["notes"] });
+    },
+  });
+}
+
+export function useTriggerRevision() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ tagId, quantity }: { tagId: string; quantity?: number }) =>
+      api.triggerRevision(tagId, quantity),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["tasks"] });
     },
@@ -226,6 +253,14 @@ export function useScheduledJobs() {
   return useQuery({
     queryKey: ["scheduled-jobs"],
     queryFn: () => api.getScheduledJobs(),
+    refetchInterval: 30000,
+  });
+}
+
+export function useJobHistory(limit?: number) {
+  return useQuery({
+    queryKey: ["job-history", limit],
+    queryFn: () => api.getJobHistory(limit),
     refetchInterval: 30000,
   });
 }

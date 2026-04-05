@@ -41,9 +41,10 @@ export interface TaskListItem {
   id: string;
   tag_id: string;
   title: string;
-  task_type: "coding" | "answering";
+  task_type: "coding" | "answering" | "revising";
   status: "pending" | "completed";
   result: "correct" | "wrong" | null;
+  note_id: string | null;
 }
 
 export interface TaskDetail {
@@ -51,7 +52,7 @@ export interface TaskDetail {
   tag_id: string;
   title: string;
   description: string;
-  task_type: "coding" | "answering";
+  task_type: "coding" | "answering" | "revising";
   status: "pending" | "completed";
   result: "correct" | "wrong" | null;
   language: string | null;
@@ -59,6 +60,9 @@ export interface TaskDetail {
   test_code: string | null;
   expected_answer: string | null;
   user_answer: string | null;
+  note_id: string | null;
+  revision_explanation: string | null;
+  original_note_content: string | null;
   created_at: string;
   updated_at: string;
 }
@@ -89,6 +93,18 @@ export interface ScheduledJob {
   name: string;
   next_run_time: string;
   next_run_relative: string;
+}
+
+export interface JobHistoryItem {
+  id: string;
+  job_id: string;
+  job_name: string;
+  tag_name: string;
+  task_type: string;
+  status: "success" | "failed";
+  message: string;
+  tasks_created: number;
+  executed_at: string | null;
 }
 
 const API_HOST = import.meta.env.VITE_API_URL || "";
@@ -189,11 +205,14 @@ export const api = {
     tag_id: string;
     title: string;
     description?: string;
-    task_type: "coding" | "answering";
+    task_type: "coding" | "answering" | "revising";
     language?: string;
     starter_code?: string;
     test_code?: string;
     expected_answer?: string;
+    note_id?: string;
+    revision_explanation?: string;
+    original_note_content?: string;
   }) =>
     request<TaskDetail>("/tasks", {
       method: "POST",
@@ -213,6 +232,18 @@ export const api = {
 
   deleteTask: (id: string) => request<void>(`/tasks/${id}`, { method: "DELETE" }),
 
+  submitRevision: (id: string, revisedContent: string) =>
+    request<TaskDetail>(`/tasks/${id}/revision`, {
+      method: "POST",
+      body: JSON.stringify({ revised_content: revisedContent }),
+    }),
+
+  triggerRevision: (tagId: string, quantity?: number) =>
+    request<TaskDetail[]>(
+      `/tasks/trigger-revision/${tagId}${quantity ? `?quantity=${quantity}` : ""}`,
+      { method: "POST" }
+    ),
+
   listSettings: () => request<TagSettings[]>("/settings"),
 
   getSettings: (tagId: string) => request<TagSettings>(`/settings/${tagId}`),
@@ -228,6 +259,9 @@ export const api = {
     }),
 
   getScheduledJobs: () => request<ScheduledJob[]>("/scheduler/jobs"),
+
+  getJobHistory: (limit?: number) =>
+    request<JobHistoryItem[]>(`/scheduler/history${limit ? `?limit=${limit}` : ""}`),
 
   syncScheduler: () => request<{ status: string; jobs_count: number }>("/scheduler/sync", { method: "POST" }),
 

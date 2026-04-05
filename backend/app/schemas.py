@@ -78,11 +78,14 @@ class TaskCreate(BaseModel):
     tag_id: UUID
     title: str
     description: str = ""
-    task_type: str  # "coding" or "answering"
+    task_type: str  # "coding", "answering", or "revising"
     language: str | None = None
     starter_code: str | None = None
     test_code: str | None = None
     expected_answer: str | None = None
+    note_id: UUID | None = None
+    revision_explanation: str | None = None
+    original_note_content: str | None = None
 
 
 class TaskUpdate(BaseModel):
@@ -111,6 +114,9 @@ class TaskResponse(BaseModel):
     test_code: str | None
     expected_answer: str | None
     user_answer: str | None
+    note_id: UUID | None
+    revision_explanation: str | None
+    original_note_content: str | None
     created_at: datetime
     updated_at: datetime
 
@@ -124,8 +130,13 @@ class TaskListItem(BaseModel):
     task_type: str
     status: str
     result: str | None
+    note_id: UUID | None = None
 
     model_config = {"from_attributes": True}
+
+
+class RevisionSubmit(BaseModel):
+    revised_content: str
 
 
 class TagTaskStats(BaseModel):

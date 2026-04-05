@@ -1,10 +1,26 @@
+import os
+import sys
 from contextlib import asynccontextmanager
+
+# Set up LangSmith env vars BEFORE any other imports
+# This must happen before langchain is imported anywhere
+from .config import settings
+
+if settings.openai_api_key:
+    os.environ["OPENAI_API_KEY"] = settings.openai_api_key
+
+if settings.langsmith_api_key:
+    os.environ["LANGSMITH_TRACING"] = "true" if settings.langsmith_tracing else "false"
+    os.environ["LANGSMITH_API_KEY"] = settings.langsmith_api_key
+    os.environ["LANGSMITH_PROJECT"] = settings.langsmith_project
+    os.environ["LANGSMITH_ENDPOINT"] = settings.langsmith_endpoint
+    sys.stderr.write(f"INFO:     LangSmith configured: project={settings.langsmith_project}, tracing={settings.langsmith_tracing}\n")
+    sys.stderr.flush()
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 
-from .config import settings
 from .routers import images, notes, tags, tasks, settings as settings_router, scheduler
 from .services.scheduler_service import start_scheduler, stop_scheduler, sync_jobs_from_settings
 

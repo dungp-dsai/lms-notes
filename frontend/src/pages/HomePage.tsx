@@ -8,6 +8,7 @@ import {
   ChevronRight,
   Code,
   MessageSquare,
+  BookOpen,
   Clock,
   CheckCircle2,
   XCircle,
@@ -290,11 +291,18 @@ function TagRow({ tag, isExpanded, onToggle, onNavigateNotes }: TagRowProps) {
                 >
                   {task.task_type === "coding" ? (
                     <Code className="h-4 w-4 text-blue-500 shrink-0" />
+                  ) : task.task_type === "revising" ? (
+                    <BookOpen className="h-4 w-4 text-amber-500 shrink-0" />
                   ) : (
                     <MessageSquare className="h-4 w-4 text-purple-500 shrink-0" />
                   )}
                   <span className="flex-1 text-sm truncate">{task.title}</span>
-                  <span className="text-xs text-muted-foreground px-2 py-0.5 rounded bg-muted">
+                  <span className={cn(
+                    "text-xs px-2 py-0.5 rounded",
+                    task.task_type === "revising" 
+                      ? "bg-amber-500/10 text-amber-600 dark:text-amber-400" 
+                      : "bg-muted text-muted-foreground"
+                  )}>
                     {task.task_type}
                   </span>
                 </button>

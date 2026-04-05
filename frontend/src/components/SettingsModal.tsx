@@ -1,8 +1,8 @@
 import { useState, useEffect } from "react";
-import { X, Settings, Code, MessageSquare, BookOpen, Clock, Send, RefreshCw, Info } from "lucide-react";
+import { X, Settings, Code, MessageSquare, BookOpen, Clock, Send, RefreshCw, Info, History, CheckCircle2, XCircle, ChevronDown, ChevronRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { useTagSettings, useUpdateSettings, useTags, useScheduledJobs, useTestTelegram, useSyncScheduler } from "@/hooks/useNotes";
+import { useTagSettings, useUpdateSettings, useTags, useScheduledJobs, useTestTelegram, useSyncScheduler, useJobHistory } from "@/hooks/useNotes";
 import { cn } from "@/lib/utils";
 import {
   Tooltip,
@@ -33,7 +33,7 @@ const DEFAULT_TIMES: Record<number, string[]> = {
 export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
   const { data: tags = [] } = useTags();
   const [selectedTagId, setSelectedTagId] = useState<string | null>(null);
-  const [activeTab, setActiveTab] = useState<"settings" | "jobs">("settings");
+  const [activeTab, setActiveTab] = useState<"settings" | "jobs" | "history">("settings");
 
   useEffect(() => {
     if (tags.length > 0 && !selectedTagId) {
@@ -69,7 +69,7 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
           >
             <div className="flex items-center justify-center gap-2">
               <Settings className="h-4 w-4" />
-              Task Frequency
+              Frequency
             </div>
           </button>
           <button
@@ -83,7 +83,21 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
           >
             <div className="flex items-center justify-center gap-2">
               <Clock className="h-4 w-4" />
-              Scheduled Jobs
+              Upcoming
+            </div>
+          </button>
+          <button
+            onClick={() => setActiveTab("history")}
+            className={cn(
+              "flex-1 px-4 py-2 text-sm font-medium transition-colors",
+              activeTab === "history"
+                ? "border-b-2 border-primary text-foreground"
+                : "text-muted-foreground hover:text-foreground"
+            )}
+          >
+            <div className="flex items-center justify-center gap-2">
+              <History className="h-4 w-4" />
+              History
             </div>
           </button>
         </div>
@@ -126,8 +140,10 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
               )}
             </div>
           </div>
-        ) : (
+        ) : activeTab === "jobs" ? (
           <ScheduledJobsPanel />
+        ) : (
+          <JobHistoryPanel />
         )}
       </div>
     </div>
@@ -228,6 +244,124 @@ function ScheduledJobsPanel() {
           <p className="text-xs text-green-500 mt-2">Message sent successfully!</p>
         )}
       </div>
+    </div>
+  );
+}
+
+function JobHistoryPanel() {
+  const { data: history = [], isLoading, refetch } = useJobHistory(100);
+  const [expandedIds, setExpandedIds] = useState<Set<string>>(new Set());
+
+  const toggleExpand = (id: string) => {
+    setExpandedIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) {
+        next.delete(id);
+      } else {
+        next.add(id);
+      }
+      return next;
+    });
+  };
+
+  const formatDate = (dateStr: string | null) => {
+    if (!dateStr) return "N/A";
+    const date = new Date(dateStr);
+    const now = new Date();
+    const diffMs = now.getTime() - date.getTime();
+    const diffMins = Math.floor(diffMs / 60000);
+    const diffHours = Math.floor(diffMins / 60);
+    const diffDays = Math.floor(diffHours / 24);
+
+    if (diffMins < 1) return "Just now";
+    if (diffMins < 60) return `${diffMins}m ago`;
+    if (diffHours < 24) return `${diffHours}h ago`;
+    if (diffDays < 7) return `${diffDays}d ago`;
+    return date.toLocaleDateString();
+  };
+
+  return (
+    <div className="h-[450px] p-4 overflow-y-auto">
+      <div className="flex items-center justify-between mb-4">
+        <h3 className="font-medium">Job History</h3>
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={() => refetch()}
+          disabled={isLoading}
+        >
+          <RefreshCw className={cn("h-4 w-4 mr-1", isLoading && "animate-spin")} />
+          Refresh
+        </Button>
+      </div>
+
+      {isLoading ? (
+        <div className="text-center text-muted-foreground py-8">Loading...</div>
+      ) : history.length === 0 ? (
+        <div className="text-center text-muted-foreground py-8">
+          <History className="h-12 w-12 mx-auto mb-2 opacity-50" />
+          <p>No job history yet</p>
+          <p className="text-xs mt-1">Jobs will appear here after they run</p>
+        </div>
+      ) : (
+        <div className="space-y-2">
+          {history.map((item) => {
+            const isExpanded = expandedIds.has(item.id);
+            return (
+              <div
+                key={item.id}
+                className={cn(
+                  "rounded-lg border transition-colors",
+                  item.status === "success"
+                    ? "border-green-500/30 bg-green-500/5"
+                    : "border-red-500/30 bg-red-500/5"
+                )}
+              >
+                <button
+                  onClick={() => toggleExpand(item.id)}
+                  className="w-full flex items-center gap-3 p-3 text-left"
+                >
+                  {isExpanded ? (
+                    <ChevronDown className="h-4 w-4 text-muted-foreground shrink-0" />
+                  ) : (
+                    <ChevronRight className="h-4 w-4 text-muted-foreground shrink-0" />
+                  )}
+                  
+                  {item.status === "success" ? (
+                    <CheckCircle2 className="h-4 w-4 text-green-500 shrink-0" />
+                  ) : (
+                    <XCircle className="h-4 w-4 text-red-500 shrink-0" />
+                  )}
+
+                  <div className="flex-1 min-w-0">
+                    <p className="font-medium text-sm truncate">{item.job_name}</p>
+                    <p className="text-xs text-muted-foreground">
+                      {item.task_type} • {item.tag_name}
+                    </p>
+                  </div>
+
+                  <div className="text-right shrink-0">
+                    <p className="text-xs text-muted-foreground">{formatDate(item.executed_at)}</p>
+                    {item.tasks_created > 0 && (
+                      <p className="text-xs text-green-500">+{item.tasks_created} tasks</p>
+                    )}
+                  </div>
+                </button>
+
+                {isExpanded && (
+                  <div className="px-3 pb-3 pt-0 border-t border-border/50 mt-1">
+                    <p className="text-xs text-muted-foreground mb-1">Details:</p>
+                    <p className="text-sm">{item.message}</p>
+                    <p className="text-xs text-muted-foreground mt-2">
+                      {item.executed_at && new Date(item.executed_at).toLocaleString()}
+                    </p>
+                  </div>
+                )}
+              </div>
+            );
+          })}
+        </div>
+      )}
     </div>
   );
 }

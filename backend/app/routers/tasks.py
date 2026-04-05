@@ -4,8 +4,9 @@ from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from ..database import get_db
-from ..schemas import TaskCreate, TaskUpdate, TaskSubmit, TaskResponse, TaskListItem, TagTaskStats
+from ..schemas import TaskCreate, TaskUpdate, TaskSubmit, TaskResponse, TaskListItem, TagTaskStats, RevisionSubmit
 from ..services import task_service
+from ..services.revision_service import submit_revision, process_revision_tasks
 
 router = APIRouter(tags=["tasks"])
 
@@ -50,6 +51,9 @@ async def create_task(body: TaskCreate, db: AsyncSession = Depends(get_db)):
         starter_code=body.starter_code,
         test_code=body.test_code,
         expected_answer=body.expected_answer,
+        note_id=body.note_id,
+        revision_explanation=body.revision_explanation,
+        original_note_content=body.original_note_content,
     )
 
 
@@ -97,3 +101,27 @@ async def delete_task(task_id: uuid.UUID, db: AsyncSession = Depends(get_db)):
     deleted = await task_service.delete_task(db, task_id)
     if not deleted:
         raise HTTPException(status_code=404, detail="Task not found")
+
+
+@router.post("/tasks/{task_id}/revision", response_model=TaskResponse)
+async def submit_revision_task(
+    task_id: uuid.UUID,
+    body: RevisionSubmit,
+    db: AsyncSession = Depends(get_db),
+):
+    """Submit a revision for a revising task."""
+    task = await submit_revision(db, task_id, body.revised_content)
+    if task is None:
+        raise HTTPException(status_code=404, detail="Task not found or not a revising task")
+    return task
+
+
+@router.post("/tasks/trigger-revision/{tag_id}", response_model=list[TaskResponse])
+async def trigger_revision_check(
+    tag_id: uuid.UUID,
+    quantity: int = Query(3, ge=1, le=10, description="Number of cards to check"),
+    db: AsyncSession = Depends(get_db),
+):
+    """Manually trigger revision check for a tag."""
+    tasks = await process_revision_tasks(db, tag_id, quantity)
+    return tasks
