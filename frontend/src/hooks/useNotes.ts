@@ -210,9 +210,9 @@ export function useUpdateSettings() {
       ...data
     }: {
       tagId: string;
-      coding?: { frequency: number; times: string[] };
-      answering?: { frequency: number; times: string[] };
-      revising?: { frequency: number; times: string[] };
+      coding?: { frequency: number; times: string[]; quantity: number };
+      answering?: { frequency: number; times: string[]; quantity: number };
+      revising?: { frequency: number; times: string[]; quantity: number };
     }) => api.updateSettings(tagId, data),
     onSuccess: (_data, variables) => {
       qc.invalidateQueries({ queryKey: ["settings", variables.tagId] });
