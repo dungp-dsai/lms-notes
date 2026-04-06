@@ -13,6 +13,8 @@ import {
   CheckCircle2,
   XCircle,
   Settings,
+  History,
+  SkipForward,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
@@ -48,7 +50,7 @@ export function HomePage() {
   const taskStatsMap = useMemo(() => {
     const map = new Map<
       string,
-      { pending: number; completed: number; correct: number; wrong: number }
+      { pending: number; completed: number; correct: number; wrong: number; skipped: number }
     >();
     taskStats.forEach((stat) => {
       map.set(stat.tag_id, stat);
@@ -78,6 +80,7 @@ export function HomePage() {
         completed: 0,
         correct: 0,
         wrong: 0,
+        skipped: 0,
       },
     }));
   }, [notes, tags, taskStatsMap]);
@@ -166,14 +169,22 @@ export function HomePage() {
           )}
         </div>
 
-        <div className="mt-8 pt-8 border-t border-border">
+        <div className="mt-8 pt-8 border-t border-border flex gap-3">
           <Button
             variant="outline"
             onClick={() => navigate("/notes")}
-            className="w-full"
+            className="flex-1"
           >
             <FileText className="h-4 w-4 mr-2" />
             View All Notes
+          </Button>
+          <Button
+            variant="outline"
+            onClick={() => navigate("/tasks/history")}
+            className="flex-1"
+          >
+            <History className="h-4 w-4 mr-2" />
+            Task History
           </Button>
         </div>
       </div>
@@ -192,7 +203,7 @@ interface TagRowProps {
     name: string;
     displayColor: string;
     noteCount: number;
-    tasks: { pending: number; completed: number; correct: number; wrong: number };
+    tasks: { pending: number; completed: number; correct: number; wrong: number; skipped: number };
   };
   isExpanded: boolean;
   onToggle: () => void;
@@ -208,7 +219,8 @@ function TagRow({ tag, isExpanded, onToggle, onNavigateNotes }: TagRowProps) {
 
   const hasTasks =
     tag.tasks.pending > 0 ||
-    tag.tasks.completed > 0;
+    tag.tasks.completed > 0 ||
+    tag.tasks.skipped > 0;
 
   return (
     <div className="rounded-lg border border-border bg-card overflow-hidden">
@@ -233,7 +245,7 @@ function TagRow({ tag, isExpanded, onToggle, onNavigateNotes }: TagRowProps) {
           {tag.name}
         </span>
 
-        {(tag.tasks.pending > 0 || tag.tasks.completed > 0) && (
+        {(tag.tasks.pending > 0 || tag.tasks.completed > 0 || tag.tasks.skipped > 0) && (
           <div className="flex items-center gap-3 text-sm">
             {tag.tasks.pending > 0 && (
               <div className="flex items-center gap-1 text-amber-500">
@@ -251,6 +263,12 @@ function TagRow({ tag, isExpanded, onToggle, onNavigateNotes }: TagRowProps) {
               <div className="flex items-center gap-1 text-red-500">
                 <XCircle className="h-3.5 w-3.5" />
                 <span className="font-mono text-xs">{tag.tasks.wrong}</span>
+              </div>
+            )}
+            {tag.tasks.skipped > 0 && (
+              <div className="flex items-center gap-1 text-gray-500">
+                <SkipForward className="h-3.5 w-3.5" />
+                <span className="font-mono text-xs">{tag.tasks.skipped}</span>
               </div>
             )}
           </div>

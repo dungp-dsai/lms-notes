@@ -3,6 +3,7 @@ import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { HomePage } from "@/pages/HomePage";
 import { NotesPage } from "@/pages/NotesPage";
 import { TaskPage } from "@/pages/TaskPage";
+import { TaskHistoryPage } from "@/pages/TaskHistoryPage";
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -22,6 +23,7 @@ function App() {
           <Route path="/notes" element={<NotesPage />} />
           <Route path="/notes/:noteId" element={<NotesPage />} />
           <Route path="/task/:taskId" element={<TaskPage />} />
+          <Route path="/tasks/history" element={<TaskHistoryPage />} />
         </Routes>
       </BrowserRouter>
     </QueryClientProvider>

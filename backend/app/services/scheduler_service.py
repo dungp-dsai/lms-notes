@@ -116,28 +116,156 @@ async def process_revision_job(tag_id: str, tag_name: str, quantity: int):
             await db.commit()
 
 
-async def task_reminder_job(tag_name: str, task_type: str):
-    """Job function that sends a reminder via Telegram."""
-    messages = {
-        "coding": f"🖥️ Time for <b>coding</b> practice!\nTag: {tag_name}",
-        "answering": f"✍️ Time to practice <b>answering</b> questions!\nTag: {tag_name}",
-        "revising": f"📚 Time to <b>revise</b> your notes!\nTag: {tag_name}",
-    }
-    message = messages.get(task_type, f"⏰ Task reminder for {tag_name}")
-    success = await send_telegram_message(message)
+async def process_coding_job(tag_id: str, tag_name: str, quantity: int):
+    """Job function that generates coding tasks and sends notifications."""
+    from .question_service import process_coding_tasks
+    import uuid as uuid_module
+    
+    job_id = f"{tag_id}_coding"
     
     async with async_session() as db:
-        history = JobHistory(
-            job_id=f"{tag_name}_{task_type}",
-            job_name=f"{task_type.title()} for {tag_name}",
-            tag_name=tag_name,
-            task_type=task_type,
-            status="success" if success else "failed",
-            message="Reminder sent" if success else "Failed to send reminder",
-            tasks_created=0,
-        )
-        db.add(history)
-        await db.commit()
+        tag_uuid = uuid_module.UUID(tag_id)
+        
+        try:
+            tasks = await process_coding_tasks(db, tag_uuid, quantity)
+            
+            if tasks:
+                task_list = "\n".join([f"• {task.title}" for task in tasks])
+                message = (
+                    f"💻 <b>Coding Challenge Time!</b>\n\n"
+                    f"You have {len(tasks)} new coding task{'s' if len(tasks) > 1 else ''} for <b>{tag_name}</b>:\n"
+                    f"{task_list}\n\n"
+                    f"Apply what you've learned! 🚀"
+                )
+                await send_telegram_message(message)
+                
+                history = JobHistory(
+                    job_id=job_id,
+                    job_name=f"Coding for {tag_name}",
+                    tag_name=tag_name,
+                    task_type="coding",
+                    status="success",
+                    message=f"Created {len(tasks)} coding tasks",
+                    tasks_created=len(tasks),
+                )
+                db.add(history)
+                await db.commit()
+            else:
+                message = (
+                    f"📝 <b>No coding tasks generated</b>\n\n"
+                    f"No new concepts available for {tag_name}.\n"
+                    f"Add more notes to get coding challenges!"
+                )
+                await send_telegram_message(message)
+                
+                history = JobHistory(
+                    job_id=job_id,
+                    job_name=f"Coding for {tag_name}",
+                    tag_name=tag_name,
+                    task_type="coding",
+                    status="success",
+                    message="No notes available for coding tasks",
+                    tasks_created=0,
+                )
+                db.add(history)
+                await db.commit()
+        except Exception as e:
+            print(f"Error processing coding job: {e}")
+            error_msg = str(e)[:500]
+            message = (
+                f"⚠️ <b>Coding task generation failed</b>\n\n"
+                f"Tag: {tag_name}\n"
+                f"Error: {error_msg[:100]}"
+            )
+            await send_telegram_message(message)
+            
+            history = JobHistory(
+                job_id=job_id,
+                job_name=f"Coding for {tag_name}",
+                tag_name=tag_name,
+                task_type="coding",
+                status="failed",
+                message=f"Error: {error_msg}",
+                tasks_created=0,
+            )
+            db.add(history)
+            await db.commit()
+
+
+async def process_answering_job(tag_id: str, tag_name: str, quantity: int):
+    """Job function that generates answering tasks and sends notifications."""
+    from .question_service import process_answering_tasks
+    import uuid as uuid_module
+    
+    job_id = f"{tag_id}_answering"
+    
+    async with async_session() as db:
+        tag_uuid = uuid_module.UUID(tag_id)
+        
+        try:
+            tasks = await process_answering_tasks(db, tag_uuid, quantity)
+            
+            if tasks:
+                task_list = "\n".join([f"• {task.title[:60]}..." if len(task.title) > 60 else f"• {task.title}" for task in tasks])
+                message = (
+                    f"🤔 <b>Deep Thinking Time!</b>\n\n"
+                    f"You have {len(tasks)} question{'s' if len(tasks) > 1 else ''} to answer for <b>{tag_name}</b>:\n"
+                    f"{task_list}\n\n"
+                    f"Test your understanding! 🧠"
+                )
+                await send_telegram_message(message)
+                
+                history = JobHistory(
+                    job_id=job_id,
+                    job_name=f"Answering for {tag_name}",
+                    tag_name=tag_name,
+                    task_type="answering",
+                    status="success",
+                    message=f"Created {len(tasks)} answering tasks",
+                    tasks_created=len(tasks),
+                )
+                db.add(history)
+                await db.commit()
+            else:
+                message = (
+                    f"📝 <b>No questions generated</b>\n\n"
+                    f"No new concepts available for {tag_name}.\n"
+                    f"Add more notes to get deep questions!"
+                )
+                await send_telegram_message(message)
+                
+                history = JobHistory(
+                    job_id=job_id,
+                    job_name=f"Answering for {tag_name}",
+                    tag_name=tag_name,
+                    task_type="answering",
+                    status="success",
+                    message="No notes available for answering tasks",
+                    tasks_created=0,
+                )
+                db.add(history)
+                await db.commit()
+        except Exception as e:
+            print(f"Error processing answering job: {e}")
+            error_msg = str(e)[:500]
+            message = (
+                f"⚠️ <b>Question generation failed</b>\n\n"
+                f"Tag: {tag_name}\n"
+                f"Error: {error_msg[:100]}"
+            )
+            await send_telegram_message(message)
+            
+            history = JobHistory(
+                job_id=job_id,
+                job_name=f"Answering for {tag_name}",
+                tag_name=tag_name,
+                task_type="answering",
+                status="failed",
+                message=f"Error: {error_msg}",
+                tasks_created=0,
+            )
+            db.add(history)
+            await db.commit()
 
 
 async def sync_jobs_from_settings():
@@ -182,12 +310,21 @@ async def sync_jobs_from_settings():
                                 replace_existing=True,
                                 name=f"{task_type.title()} for {tag.name}",
                             )
-                        else:
+                        elif task_type == "coding":
                             scheduler.add_job(
-                                task_reminder_job,
+                                process_coding_job,
                                 CronTrigger(hour=hour, minute=minute),
                                 id=job_id,
-                                args=[tag.name, task_type],
+                                args=[str(tag.id), tag.name, quantity],
+                                replace_existing=True,
+                                name=f"{task_type.title()} for {tag.name}",
+                            )
+                        elif task_type == "answering":
+                            scheduler.add_job(
+                                process_answering_job,
+                                CronTrigger(hour=hour, minute=minute),
+                                id=job_id,
+                                args=[str(tag.id), tag.name, quantity],
                                 replace_existing=True,
                                 name=f"{task_type.title()} for {tag.name}",
                             )

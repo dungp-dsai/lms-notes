@@ -190,6 +190,28 @@ export function useDeleteTask() {
   });
 }
 
+export function useRedoTask() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (id: string) => api.redoTask(id),
+    onSuccess: (_data, id) => {
+      qc.invalidateQueries({ queryKey: ["tasks", id] });
+      qc.invalidateQueries({ queryKey: ["tasks"] });
+    },
+  });
+}
+
+export function useSkipTask() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (id: string) => api.skipTask(id),
+    onSuccess: (_data, id) => {
+      qc.invalidateQueries({ queryKey: ["tasks", id] });
+      qc.invalidateQueries({ queryKey: ["tasks"] });
+    },
+  });
+}
+
 export function useSubmitRevision() {
   const qc = useQueryClient();
   return useMutation({
@@ -208,6 +230,28 @@ export function useTriggerRevision() {
   return useMutation({
     mutationFn: ({ tagId, quantity }: { tagId: string; quantity?: number }) =>
       api.triggerRevision(tagId, quantity),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["tasks"] });
+    },
+  });
+}
+
+export function useTriggerCoding() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ tagId, quantity }: { tagId: string; quantity?: number }) =>
+      api.triggerCoding(tagId, quantity),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["tasks"] });
+    },
+  });
+}
+
+export function useTriggerAnswering() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ tagId, quantity }: { tagId: string; quantity?: number }) =>
+      api.triggerAnswering(tagId, quantity),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["tasks"] });
     },
@@ -278,5 +322,27 @@ export function useSyncScheduler() {
 export function useTestTelegram() {
   return useMutation({
     mutationFn: (message?: string) => api.testTelegram(message),
+  });
+}
+
+export function useEvaluateCode() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ taskId, code }: { taskId: string; code: string }) =>
+      api.evaluateCode(taskId, code),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["tasks"] });
+    },
+  });
+}
+
+export function useEvaluateAnswer() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ taskId, answer }: { taskId: string; answer: string }) =>
+      api.evaluateAnswer(taskId, answer),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["tasks"] });
+    },
   });
 }

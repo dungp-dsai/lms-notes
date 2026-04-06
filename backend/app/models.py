@@ -39,6 +39,8 @@ class Note(Base):
     content: Mapped[str] = mapped_column(Text, nullable=False, default="")
     original_text: Mapped[str] = mapped_column(Text, nullable=False, default="")
     revision_count: Mapped[int] = mapped_column(default=0)
+    coding_count: Mapped[int] = mapped_column(default=0)
+    answering_count: Mapped[int] = mapped_column(default=0)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
     updated_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now(), onupdate=lambda: datetime.now(timezone.utc)
@@ -146,6 +148,9 @@ class Task(Base):
 
     # User's submission
     user_answer: Mapped[str | None] = mapped_column(Text, nullable=True)
+    
+    # Evaluation feedback (JSON string with feedback, concept_understanding, comment_quality)
+    evaluation_feedback: Mapped[str | None] = mapped_column(Text, nullable=True)
 
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
     updated_at: Mapped[datetime] = mapped_column(

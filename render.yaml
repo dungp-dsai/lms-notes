@@ -1,0 +1,38 @@
+services:
+  - type: web
+    name: lms-backend
+    runtime: python
+    region: oregon
+    rootDir: backend
+    buildCommand: ./build.sh
+    startCommand: uvicorn app.main:app --host 0.0.0.0 --port $PORT
+    envVars:
+      - key: PYTHON_VERSION
+        value: "3.11"
+      - key: LMS_DATABASE_URL
+        sync: false
+      - key: LMS_OPENAI_API_KEY
+        sync: false
+      - key: LMS_LANGSMITH_API_KEY
+        sync: false
+      - key: LMS_LANGSMITH_PROJECT
+        sync: false
+      - key: LMS_LANGSMITH_TRACING
+        value: "true"
+      - key: LMS_TELEGRAM_BOT_TOKEN
+        sync: false
+      - key: LMS_TELEGRAM_CHAT_ID
+        sync: false
+      - key: LMS_AWS_ACCESS_KEY_ID
+        sync: false
+      - key: LMS_AWS_SECRET_ACCESS_KEY
+        sync: false
+      - key: LMS_S3_BUCKET_NAME
+        sync: false
+
+databases:
+  - name: lms-db
+    databaseName: lms
+    user: lms
+    region: oregon
+    plan: free

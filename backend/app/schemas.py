@@ -117,6 +117,7 @@ class TaskResponse(BaseModel):
     note_id: UUID | None
     revision_explanation: str | None
     original_note_content: str | None
+    evaluation_feedback: str | None
     created_at: datetime
     updated_at: datetime
 
@@ -145,6 +146,7 @@ class TagTaskStats(BaseModel):
     completed: int
     correct: int
     wrong: int
+    skipped: int = 0
 
 
 class TaskFrequencyConfig(BaseModel):
@@ -166,3 +168,23 @@ class TagSettingsResponse(BaseModel):
     revising: TaskFrequencyConfig
 
     model_config = {"from_attributes": True}
+
+
+class CodeEvaluationRequest(BaseModel):
+    code: str
+
+
+class CodeEvaluationResponse(BaseModel):
+    is_correct: bool
+    feedback: str
+    concept_understanding: str
+    comment_quality: str
+
+
+class AnswerEvaluationRequest(BaseModel):
+    answer: str
+
+
+class AnswerEvaluationResponse(BaseModel):
+    is_correct: bool
+    feedback: str

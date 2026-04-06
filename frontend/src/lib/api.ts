@@ -42,7 +42,7 @@ export interface TaskListItem {
   tag_id: string;
   title: string;
   task_type: "coding" | "answering" | "revising";
-  status: "pending" | "completed";
+  status: "pending" | "completed" | "skipped";
   result: "correct" | "wrong" | null;
   note_id: string | null;
 }
@@ -53,7 +53,7 @@ export interface TaskDetail {
   title: string;
   description: string;
   task_type: "coding" | "answering" | "revising";
-  status: "pending" | "completed";
+  status: "pending" | "completed" | "skipped";
   result: "correct" | "wrong" | null;
   language: string | null;
   starter_code: string | null;
@@ -63,6 +63,7 @@ export interface TaskDetail {
   note_id: string | null;
   revision_explanation: string | null;
   original_note_content: string | null;
+  evaluation_feedback: string | null;
   created_at: string;
   updated_at: string;
 }
@@ -73,6 +74,7 @@ export interface TagTaskStats {
   completed: number;
   correct: number;
   wrong: number;
+  skipped: number;
 }
 
 export interface TaskFrequencyConfig {
@@ -232,6 +234,12 @@ export const api = {
 
   deleteTask: (id: string) => request<void>(`/tasks/${id}`, { method: "DELETE" }),
 
+  redoTask: (id: string) =>
+    request<TaskDetail>(`/tasks/${id}/redo`, { method: "POST" }),
+
+  skipTask: (id: string) =>
+    request<TaskDetail>(`/tasks/${id}/skip`, { method: "POST" }),
+
   submitRevision: (id: string, revisedContent: string) =>
     request<TaskDetail>(`/tasks/${id}/revision`, {
       method: "POST",
@@ -241,6 +249,18 @@ export const api = {
   triggerRevision: (tagId: string, quantity?: number) =>
     request<TaskDetail[]>(
       `/tasks/trigger-revision/${tagId}${quantity ? `?quantity=${quantity}` : ""}`,
+      { method: "POST" }
+    ),
+
+  triggerCoding: (tagId: string, quantity?: number) =>
+    request<TaskDetail[]>(
+      `/tasks/trigger-coding/${tagId}${quantity ? `?quantity=${quantity}` : ""}`,
+      { method: "POST" }
+    ),
+
+  triggerAnswering: (tagId: string, quantity?: number) =>
+    request<TaskDetail[]>(
+      `/tasks/trigger-answering/${tagId}${quantity ? `?quantity=${quantity}` : ""}`,
       { method: "POST" }
     ),
 
@@ -270,4 +290,28 @@ export const api = {
       method: "POST",
       body: JSON.stringify({ message: message || "Hello from LMS Notes! 👋" }),
     }),
+
+  evaluateCode: (taskId: string, code: string) =>
+    request<CodeEvaluationResult>(`/tasks/${taskId}/evaluate`, {
+      method: "POST",
+      body: JSON.stringify({ code }),
+    }),
+
+  evaluateAnswer: (taskId: string, answer: string) =>
+    request<AnswerEvaluationResult>(`/tasks/${taskId}/evaluate-answer`, {
+      method: "POST",
+      body: JSON.stringify({ answer }),
+    }),
 };
+
+export interface CodeEvaluationResult {
+  is_correct: boolean;
+  feedback: string;
+  concept_understanding: string;
+  comment_quality: string;
+}
+
+export interface AnswerEvaluationResult {
+  is_correct: boolean;
+  feedback: string;
+}

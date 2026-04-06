@@ -136,6 +136,35 @@ async def delete_task(db: AsyncSession, task_id: uuid.UUID) -> bool:
     return True
 
 
+async def redo_task(db: AsyncSession, task_id: uuid.UUID) -> Task | None:
+    """Reset a task to pending status so it can be redone."""
+    task = await get_task(db, task_id)
+    if task is None:
+        return None
+    
+    task.status = "pending"
+    task.result = None
+    task.user_answer = None
+    
+    await db.commit()
+    await db.refresh(task)
+    return task
+
+
+async def skip_task(db: AsyncSession, task_id: uuid.UUID) -> Task | None:
+    """Skip a task - marks it as skipped without completing it."""
+    task = await get_task(db, task_id)
+    if task is None:
+        return None
+    
+    task.status = "skipped"
+    task.result = None
+    
+    await db.commit()
+    await db.refresh(task)
+    return task
+
+
 async def get_task_stats_by_tag(db: AsyncSession) -> dict[uuid.UUID, dict]:
     result = await db.execute(
         select(
@@ -152,7 +181,7 @@ async def get_task_stats_by_tag(db: AsyncSession) -> dict[uuid.UUID, dict]:
     for row in rows:
         tag_id = row.tag_id
         if tag_id not in stats:
-            stats[tag_id] = {"pending": 0, "completed": 0, "correct": 0, "wrong": 0}
+            stats[tag_id] = {"pending": 0, "completed": 0, "correct": 0, "wrong": 0, "skipped": 0}
 
         if row.status == "pending":
             stats[tag_id]["pending"] += row.count
@@ -162,5 +191,7 @@ async def get_task_stats_by_tag(db: AsyncSession) -> dict[uuid.UUID, dict]:
                 stats[tag_id]["correct"] += row.count
             elif row.result == "wrong":
                 stats[tag_id]["wrong"] += row.count
+        elif row.status == "skipped":
+            stats[tag_id]["skipped"] += row.count
 
     return stats
