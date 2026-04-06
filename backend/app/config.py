@@ -5,7 +5,7 @@ from pydantic_settings import BaseSettings
 class Settings(BaseSettings):
     database_url: str = "postgresql+asyncpg://lms:lms_secret@localhost:5433/lms"
     upload_dir: Path = Path(__file__).resolve().parent.parent / "uploads"
-    allowed_origins: str = "http://localhost:5173"
+    allowed_origins: str = "http://localhost:5173,https://urverse.tech,https://frontend-7hgzkq6sl-dungp-dsais-projects.vercel.app"
     telegram_bot_token: str = ""
     telegram_chat_id: str = ""
     aws_access_key_id: str = ""
