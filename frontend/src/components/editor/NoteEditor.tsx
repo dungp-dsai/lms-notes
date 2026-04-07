@@ -8,8 +8,8 @@ import Underline from "@tiptap/extension-underline";
 import TaskList from "@tiptap/extension-task-list";
 import TaskItem from "@tiptap/extension-task-item";
 import Mention from "@tiptap/extension-mention";
-import { Plus, X, FileText, AlertCircle, CheckCircle2 } from "lucide-react";
-import { useNote, useUpdateNote, useBacklinks, useTags, useSubmitRevision } from "@/hooks/useNotes";
+import { Plus, X, FileText, AlertCircle, CheckCircle2, Trash2 } from "lucide-react";
+import { useNote, useUpdateNote, useBacklinks, useTags, useSubmitRevision, useDeleteNote, useNoteList } from "@/hooks/useNotes";
 import { OriginalTextModal } from "@/components/OriginalTextModal";
 import { Toolbar } from "./Toolbar";
 import { ImagePaste } from "./extensions/image-paste";
@@ -36,16 +36,30 @@ export function NoteEditor({ noteId, revisionTask, onRevisionComplete }: NoteEdi
   const { data: note, isLoading } = useNote(noteId);
   const { data: backlinks = [] } = useBacklinks(noteId);
   const { data: allTags = [] } = useTags();
+  const { data: notes = [] } = useNoteList();
   const updateNote = useUpdateNote();
+  const deleteNote = useDeleteNote();
   const submitRevision = useSubmitRevision();
   const [title, setTitle] = useState("");
   const [showTagPicker, setShowTagPicker] = useState(false);
   const [showOriginalText, setShowOriginalText] = useState(false);
   const [showRevisionBanner, setShowRevisionBanner] = useState(!!revisionTask);
   const [revisionCompleted, setRevisionCompleted] = useState(false);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const saveTimer = useRef<ReturnType<typeof setTimeout>>(null);
   const skipNextUpdate = useRef(false);
   const tagPickerRef = useRef<HTMLDivElement>(null);
+
+  const handleDeleteNote = () => {
+    const remaining = notes.filter((n) => n.id !== noteId);
+    deleteNote.mutate(noteId);
+    setShowDeleteConfirm(false);
+    if (remaining.length > 0) {
+      window.dispatchEvent(
+        new CustomEvent("select-note", { detail: { noteId: remaining[0].id } })
+      );
+    }
+  };
 
   useEffect(() => {
     if (revisionTask) {
@@ -354,6 +368,33 @@ export function NoteEditor({ noteId, revisionTask, onRevisionComplete }: NoteEdi
                 <span className="hidden sm:inline">{note.original_text ? "View Original" : "Add Original"}</span>
                 <span className="sm:hidden">{note.original_text ? "Original" : "Add"}</span>
               </button>
+
+              {showDeleteConfirm ? (
+                <div className="flex items-center gap-1.5 text-xs ml-auto">
+                  <span className="text-red-400">Delete?</span>
+                  <button
+                    onClick={handleDeleteNote}
+                    className="text-red-400 hover:text-red-300 font-medium px-2 py-0.5 bg-red-500/20 rounded"
+                  >
+                    Yes
+                  </button>
+                  <button
+                    onClick={() => setShowDeleteConfirm(false)}
+                    className="text-muted-foreground hover:text-foreground font-medium px-2 py-0.5 bg-muted rounded"
+                  >
+                    No
+                  </button>
+                </div>
+              ) : (
+                <button
+                  onClick={() => setShowDeleteConfirm(true)}
+                  className="text-xs px-2 py-0.5 rounded-full border border-dashed border-red-500/30 text-red-400/70 hover:text-red-400 hover:border-red-500/50 hover:bg-red-500/10 transition-colors flex items-center gap-1 cursor-pointer ml-auto"
+                  title="Delete note"
+                >
+                  <Trash2 className="h-3 w-3" />
+                  <span className="hidden sm:inline">Delete</span>
+                </button>
+              )}
             </div>
           </div>
           <div className="px-3 sm:px-6">
