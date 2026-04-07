@@ -100,11 +100,11 @@ export function HomePage() {
 
   return (
     <div className="min-h-screen bg-background">
-      <div className="max-w-4xl mx-auto px-6 py-12">
-        <div className="flex items-center justify-between mb-8">
+      <div className="max-w-4xl mx-auto px-4 sm:px-6 py-6 sm:py-12">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6 sm:mb-8">
           <div>
-            <h1 className="text-3xl font-bold text-foreground">Notes</h1>
-            <p className="text-muted-foreground mt-1">
+            <h1 className="text-2xl sm:text-3xl font-bold text-foreground">Notes</h1>
+            <p className="text-sm sm:text-base text-muted-foreground mt-1">
               {notes.length} {notes.length === 1 ? "card" : "cards"} total
             </p>
           </div>
@@ -117,7 +117,7 @@ export function HomePage() {
             >
               <Settings className="h-4 w-4" />
             </Button>
-            <Button onClick={handleCreateNote} disabled={createNote.isPending}>
+            <Button onClick={handleCreateNote} disabled={createNote.isPending} className="flex-1 sm:flex-none">
               <Plus className="h-4 w-4 mr-2" />
               Add Card
             </Button>
@@ -127,12 +127,12 @@ export function HomePage() {
         <div className="grid gap-4">
           <div className="flex items-center gap-2 mb-2">
             <TagIcon className="h-5 w-5 text-muted-foreground" />
-            <h2 className="text-lg font-semibold">Tags & Review Tasks</h2>
+            <h2 className="text-base sm:text-lg font-semibold">Tags & Review Tasks</h2>
           </div>
 
           {tagStats.length === 0 ? (
-            <div className="text-center py-12 text-muted-foreground">
-              <TagIcon className="h-12 w-12 mx-auto mb-4 opacity-50" />
+            <div className="text-center py-8 sm:py-12 text-muted-foreground">
+              <TagIcon className="h-10 w-10 sm:h-12 sm:w-12 mx-auto mb-4 opacity-50" />
               <p>No tags yet</p>
               <p className="text-sm mt-1">Create tags from the notes page</p>
             </div>
@@ -151,15 +151,15 @@ export function HomePage() {
               {untaggedCount > 0 && (
                 <button
                   onClick={() => navigate("/notes?untagged=true")}
-                  className="w-full flex items-center gap-4 p-4 rounded-lg border border-dashed border-border hover:bg-accent/50 transition-colors cursor-pointer group"
+                  className="w-full flex items-center gap-3 sm:gap-4 p-3 sm:p-4 rounded-lg border border-dashed border-border hover:bg-accent/50 transition-colors cursor-pointer group"
                 >
                   <div className="w-3 h-3 rounded-full shrink-0 border-2 border-muted-foreground/50" />
-                  <span className="flex-1 text-left font-medium text-muted-foreground group-hover:text-foreground">
+                  <span className="flex-1 text-left text-sm sm:text-base font-medium text-muted-foreground group-hover:text-foreground">
                     Untagged
                   </span>
-                  <div className="flex items-center gap-2 text-muted-foreground">
+                  <div className="flex items-center gap-1.5 sm:gap-2 text-muted-foreground">
                     <FileText className="h-4 w-4" />
-                    <span className="font-mono text-sm">
+                    <span className="font-mono text-xs sm:text-sm">
                       {untaggedCount} {untaggedCount === 1 ? "card" : "cards"}
                     </span>
                   </div>
@@ -169,7 +169,7 @@ export function HomePage() {
           )}
         </div>
 
-        <div className="mt-8 pt-8 border-t border-border flex gap-3">
+        <div className="mt-6 sm:mt-8 pt-6 sm:pt-8 border-t border-border flex flex-col sm:flex-row gap-3">
           <Button
             variant="outline"
             onClick={() => navigate("/notes")}
@@ -225,75 +225,80 @@ function TagRow({ tag, isExpanded, onToggle, onNavigateNotes }: TagRowProps) {
   return (
     <div className="rounded-lg border border-border bg-card overflow-hidden">
       <div
-        className="flex items-center gap-4 p-4 hover:bg-accent/50 transition-colors cursor-pointer"
+        className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4 p-3 sm:p-4 hover:bg-accent/50 transition-colors cursor-pointer"
         onClick={hasTasks ? onToggle : onNavigateNotes}
       >
-        {hasTasks ? (
-          isExpanded ? (
-            <ChevronDown className="h-4 w-4 text-muted-foreground" />
+        <div className="flex items-center gap-3 sm:gap-4 flex-1 min-w-0">
+          {hasTasks ? (
+            isExpanded ? (
+              <ChevronDown className="h-4 w-4 text-muted-foreground shrink-0" />
+            ) : (
+              <ChevronRight className="h-4 w-4 text-muted-foreground shrink-0" />
+            )
           ) : (
-            <ChevronRight className="h-4 w-4 text-muted-foreground" />
-          )
-        ) : (
-          <div className="w-4" />
-        )}
-        <div
-          className="w-3 h-3 rounded-full shrink-0"
-          style={{ backgroundColor: tag.displayColor }}
-        />
-        <span className="flex-1 text-left font-medium text-foreground">
-          {tag.name}
-        </span>
-
-        {(tag.tasks.pending > 0 || tag.tasks.completed > 0 || tag.tasks.skipped > 0) && (
-          <div className="flex items-center gap-3 text-sm">
-            {tag.tasks.pending > 0 && (
-              <div className="flex items-center gap-1 text-amber-500">
-                <Clock className="h-3.5 w-3.5" />
-                <span className="font-mono text-xs">{tag.tasks.pending}</span>
-              </div>
-            )}
-            {tag.tasks.correct > 0 && (
-              <div className="flex items-center gap-1 text-green-500">
-                <CheckCircle2 className="h-3.5 w-3.5" />
-                <span className="font-mono text-xs">{tag.tasks.correct}</span>
-              </div>
-            )}
-            {tag.tasks.wrong > 0 && (
-              <div className="flex items-center gap-1 text-red-500">
-                <XCircle className="h-3.5 w-3.5" />
-                <span className="font-mono text-xs">{tag.tasks.wrong}</span>
-              </div>
-            )}
-            {tag.tasks.skipped > 0 && (
-              <div className="flex items-center gap-1 text-gray-500">
-                <SkipForward className="h-3.5 w-3.5" />
-                <span className="font-mono text-xs">{tag.tasks.skipped}</span>
-              </div>
-            )}
-          </div>
-        )}
-
-        <div className="flex items-center gap-1.5 text-muted-foreground text-sm">
-          <FileText className="h-4 w-4" />
-          <span className="font-mono">{tag.noteCount}</span>
+            <div className="w-4 shrink-0" />
+          )}
+          <div
+            className="w-3 h-3 rounded-full shrink-0"
+            style={{ backgroundColor: tag.displayColor }}
+          />
+          <span className="flex-1 text-left text-sm sm:text-base font-medium text-foreground truncate">
+            {tag.name}
+          </span>
         </div>
 
-        <Button
-          variant="ghost"
-          size="sm"
-          onClick={(e) => {
-            e.stopPropagation();
-            onNavigateNotes();
-          }}
-        >
-          View Notes
-        </Button>
+        <div className="flex items-center gap-2 sm:gap-3 ml-10 sm:ml-0 flex-wrap">
+          {(tag.tasks.pending > 0 || tag.tasks.completed > 0 || tag.tasks.skipped > 0) && (
+            <div className="flex items-center gap-2 sm:gap-3 text-sm">
+              {tag.tasks.pending > 0 && (
+                <div className="flex items-center gap-1 text-amber-500">
+                  <Clock className="h-3.5 w-3.5" />
+                  <span className="font-mono text-xs">{tag.tasks.pending}</span>
+                </div>
+              )}
+              {tag.tasks.correct > 0 && (
+                <div className="flex items-center gap-1 text-green-500">
+                  <CheckCircle2 className="h-3.5 w-3.5" />
+                  <span className="font-mono text-xs">{tag.tasks.correct}</span>
+                </div>
+              )}
+              {tag.tasks.wrong > 0 && (
+                <div className="flex items-center gap-1 text-red-500">
+                  <XCircle className="h-3.5 w-3.5" />
+                  <span className="font-mono text-xs">{tag.tasks.wrong}</span>
+                </div>
+              )}
+              {tag.tasks.skipped > 0 && (
+                <div className="flex items-center gap-1 text-gray-500">
+                  <SkipForward className="h-3.5 w-3.5" />
+                  <span className="font-mono text-xs">{tag.tasks.skipped}</span>
+                </div>
+              )}
+            </div>
+          )}
+
+          <div className="flex items-center gap-1.5 text-muted-foreground text-sm">
+            <FileText className="h-4 w-4" />
+            <span className="font-mono text-xs sm:text-sm">{tag.noteCount}</span>
+          </div>
+
+          <Button
+            variant="ghost"
+            size="sm"
+            className="hidden sm:flex"
+            onClick={(e) => {
+              e.stopPropagation();
+              onNavigateNotes();
+            }}
+          >
+            View Notes
+          </Button>
+        </div>
       </div>
 
       {isExpanded && pendingTasks.length > 0 && (
         <div className="border-t border-border bg-muted/30">
-          <div className="p-3">
+          <div className="p-2 sm:p-3">
             <p className="text-xs font-medium text-muted-foreground mb-2">
               Pending Tasks
             </p>
@@ -303,7 +308,7 @@ function TagRow({ tag, isExpanded, onToggle, onNavigateNotes }: TagRowProps) {
                   key={task.id}
                   onClick={() => navigate(`/task/${task.id}`)}
                   className={cn(
-                    "w-full flex items-center gap-3 p-2.5 rounded-md hover:bg-accent transition-colors cursor-pointer text-left",
+                    "w-full flex items-center gap-2 sm:gap-3 p-2 sm:p-2.5 rounded-md hover:bg-accent transition-colors cursor-pointer text-left",
                     "border border-transparent hover:border-border"
                   )}
                 >
@@ -314,9 +319,9 @@ function TagRow({ tag, isExpanded, onToggle, onNavigateNotes }: TagRowProps) {
                   ) : (
                     <MessageSquare className="h-4 w-4 text-purple-500 shrink-0" />
                   )}
-                  <span className="flex-1 text-sm truncate">{task.title}</span>
+                  <span className="flex-1 text-xs sm:text-sm truncate">{task.title}</span>
                   <span className={cn(
-                    "text-xs px-2 py-0.5 rounded",
+                    "text-xs px-1.5 sm:px-2 py-0.5 rounded hidden sm:inline",
                     task.task_type === "revising" 
                       ? "bg-amber-500/10 text-amber-600 dark:text-amber-400" 
                       : "bg-muted text-muted-foreground"
@@ -331,7 +336,7 @@ function TagRow({ tag, isExpanded, onToggle, onNavigateNotes }: TagRowProps) {
       )}
 
       {isExpanded && pendingTasks.length === 0 && tag.tasks.pending === 0 && (
-        <div className="border-t border-border bg-muted/30 p-4 text-center text-sm text-muted-foreground">
+        <div className="border-t border-border bg-muted/30 p-3 sm:p-4 text-center text-sm text-muted-foreground">
           No pending tasks
         </div>
       )}

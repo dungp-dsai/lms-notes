@@ -104,18 +104,18 @@ export function OriginalTextModal({
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-2 sm:p-4">
       <div
         className="absolute inset-0 bg-black/60 backdrop-blur-sm"
         onClick={handleClose}
       />
-      <div className="relative bg-background border border-border rounded-lg shadow-xl w-[90vw] max-w-4xl max-h-[85vh] flex flex-col">
-        <div className="flex items-center justify-between px-4 py-3 border-b border-border">
+      <div className="relative bg-background border border-border sm:rounded-lg shadow-xl w-full h-full sm:h-auto sm:w-[90vw] max-w-4xl sm:max-h-[85vh] flex flex-col">
+        <div className="flex items-center justify-between px-3 sm:px-4 py-2 sm:py-3 border-b border-border shrink-0">
           <div className="flex items-center gap-2">
-            <FileText className="h-5 w-5 text-muted-foreground" />
-            <h2 className="font-semibold">Original Text</h2>
+            <FileText className="h-4 w-4 sm:h-5 sm:w-5 text-muted-foreground" />
+            <h2 className="text-sm sm:text-base font-semibold">Original Text</h2>
           </div>
-          <Button variant="ghost" size="icon" onClick={handleClose}>
+          <Button variant="ghost" size="icon" onClick={handleClose} className="h-8 w-8">
             <X className="h-4 w-4" />
           </Button>
         </div>
@@ -123,16 +123,16 @@ export function OriginalTextModal({
         {editor && <Toolbar editor={editor} />}
 
         <ScrollArea className="flex-1 min-h-0 overflow-auto">
-          <div className="max-h-[calc(85vh-180px)] overflow-y-auto">
+          <div className="overflow-y-auto px-2 sm:px-0">
             <EditorContent editor={editor} />
           </div>
         </ScrollArea>
 
-        <div className="flex items-center justify-between px-4 py-3 border-t border-border">
-          <span className="text-xs text-muted-foreground">
+        <div className="flex items-center justify-between px-3 sm:px-4 py-2 sm:py-3 border-t border-border shrink-0">
+          <span className="text-xs text-muted-foreground hidden sm:inline">
             {hasChanges ? "Unsaved changes" : "No changes"}
           </span>
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2 sm:gap-3 ml-auto">
             {saved && (
               <span className="text-xs text-green-500 font-medium animate-in fade-in">
                 Saved!
@@ -142,9 +142,9 @@ export function OriginalTextModal({
               onClick={handleSave}
               disabled={!hasChanges || saving}
               size="sm"
-              className="gap-2"
+              className="gap-1.5 sm:gap-2 h-8 text-xs sm:text-sm"
             >
-              <Save className="h-4 w-4" />
+              <Save className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
               {saving ? "Saving..." : "Save"}
             </Button>
           </div>

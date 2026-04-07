@@ -223,40 +223,42 @@ export function NoteEditor({ noteId, revisionTask, onRevisionComplete }: NoteEdi
       
       {showRevisionBanner && revisionTask && (
         <div className={cn(
-          "mx-6 mt-4 p-4 rounded-lg border transition-all",
+          "mx-3 sm:mx-6 mt-3 sm:mt-4 p-3 sm:p-4 rounded-lg border transition-all",
           revisionCompleted 
             ? "bg-green-500/10 border-green-500/30" 
             : "bg-amber-500/10 border-amber-500/30"
         )}>
-          <div className="flex items-start gap-3">
-            {revisionCompleted ? (
-              <CheckCircle2 className="h-5 w-5 text-green-500 mt-0.5 shrink-0" />
-            ) : (
-              <AlertCircle className="h-5 w-5 text-amber-500 mt-0.5 shrink-0" />
-            )}
-            <div className="flex-1 min-w-0">
+          <div className="flex flex-col sm:flex-row sm:items-start gap-2 sm:gap-3">
+            <div className="flex items-start gap-2 sm:gap-3 flex-1 min-w-0">
               {revisionCompleted ? (
-                <p className="text-sm font-medium text-green-600 dark:text-green-400">
-                  Revision completed! Great job improving your notes.
-                </p>
+                <CheckCircle2 className="h-4 w-4 sm:h-5 sm:w-5 text-green-500 mt-0.5 shrink-0" />
               ) : (
-                <>
-                  <p className="text-sm font-medium text-amber-600 dark:text-amber-400 mb-1">
-                    This note needs revision
-                  </p>
-                  <p className="text-sm text-foreground/80">
-                    {revisionTask.explanation}
-                  </p>
-                </>
+                <AlertCircle className="h-4 w-4 sm:h-5 sm:w-5 text-amber-500 mt-0.5 shrink-0" />
               )}
+              <div className="flex-1 min-w-0">
+                {revisionCompleted ? (
+                  <p className="text-xs sm:text-sm font-medium text-green-600 dark:text-green-400">
+                    Revision completed! Great job improving your notes.
+                  </p>
+                ) : (
+                  <>
+                    <p className="text-xs sm:text-sm font-medium text-amber-600 dark:text-amber-400 mb-1">
+                      This note needs revision
+                    </p>
+                    <p className="text-xs sm:text-sm text-foreground/80">
+                      {revisionTask.explanation}
+                    </p>
+                  </>
+                )}
+              </div>
             </div>
-            <div className="flex items-center gap-2 shrink-0">
+            <div className="flex items-center gap-2 shrink-0 ml-6 sm:ml-0">
               {!revisionCompleted && (
                 <Button
                   size="sm"
                   onClick={handleCompleteRevision}
                   disabled={submitRevision.isPending}
-                  className="bg-amber-500 hover:bg-amber-600 text-white"
+                  className="bg-amber-500 hover:bg-amber-600 text-white text-xs sm:text-sm h-7 sm:h-8"
                 >
                   {submitRevision.isPending ? "Saving..." : "Mark as Revised"}
                 </Button>
@@ -279,12 +281,12 @@ export function NoteEditor({ noteId, revisionTask, onRevisionComplete }: NoteEdi
       
       <ScrollArea className="flex-1">
         <div className="max-w-3xl mx-auto w-full">
-          <div className="px-6 pt-6">
+          <div className="px-3 sm:px-6 pt-4 sm:pt-6">
             <Input
               value={title}
               onChange={handleTitleChange}
               placeholder="Note title..."
-              className="border-none text-2xl font-bold h-auto py-0 px-0 focus-visible:ring-0 bg-transparent"
+              className="border-none text-xl sm:text-2xl font-bold h-auto py-0 px-0 focus-visible:ring-0 bg-transparent"
             />
 
             <div className="flex flex-wrap items-center gap-1.5 mt-3">
@@ -312,7 +314,8 @@ export function NoteEditor({ noteId, revisionTask, onRevisionComplete }: NoteEdi
                   )}
                 >
                   <Plus className="h-3 w-3" />
-                  Add tag
+                  <span className="hidden sm:inline">Add tag</span>
+                  <span className="sm:hidden">Tag</span>
                 </button>
 
                 {showTagPicker && (
@@ -348,14 +351,17 @@ export function NoteEditor({ noteId, revisionTask, onRevisionComplete }: NoteEdi
                 )}
               >
                 <FileText className="h-3 w-3" />
-                {note.original_text ? "View Original" : "Add Original"}
+                <span className="hidden sm:inline">{note.original_text ? "View Original" : "Add Original"}</span>
+                <span className="sm:hidden">{note.original_text ? "Original" : "Add"}</span>
               </button>
             </div>
           </div>
-          <EditorContent editor={editor} />
+          <div className="px-3 sm:px-6">
+            <EditorContent editor={editor} />
+          </div>
 
           {backlinks.length > 0 && (
-            <div className="px-6 pb-6 mt-8 border-t border-border pt-4">
+            <div className="px-3 sm:px-6 pb-6 mt-8 border-t border-border pt-4">
               <h3 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-2">
                 Backlinks
               </h3>
@@ -370,7 +376,7 @@ export function NoteEditor({ noteId, revisionTask, onRevisionComplete }: NoteEdi
                         })
                       )
                     }
-                    className="text-sm text-purple-400 hover:text-purple-300 hover:underline cursor-pointer"
+                    className="text-xs sm:text-sm text-purple-400 hover:text-purple-300 hover:underline cursor-pointer"
                   >
                     {bl.title}
                   </button>

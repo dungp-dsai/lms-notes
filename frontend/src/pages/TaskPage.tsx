@@ -79,46 +79,47 @@ export function TaskPage() {
   }
 
   return (
-    <div className="min-h-screen bg-background">
-      <div className="border-b border-border bg-card">
-        <div className="max-w-5xl mx-auto px-6 py-4 flex items-center gap-4">
-          <Button variant="ghost" size="icon" onClick={() => navigate("/")}>
+    <div className="min-h-screen bg-background flex flex-col">
+      <div className="border-b border-border bg-card shrink-0">
+        <div className="max-w-5xl mx-auto px-3 sm:px-6 py-3 sm:py-4 flex items-center gap-2 sm:gap-4">
+          <Button variant="ghost" size="icon" onClick={() => navigate("/")} className="shrink-0">
             <ArrowLeft className="h-4 w-4" />
           </Button>
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 flex-1 min-w-0">
             {task.task_type === "coding" ? (
               <>
-                <Code className="h-5 w-5 text-blue-500" />
-                <h1 className="text-lg font-semibold">{task.title}</h1>
+                <Code className="h-4 w-4 sm:h-5 sm:w-5 text-blue-500 shrink-0" />
+                <h1 className="text-sm sm:text-lg font-semibold truncate">{task.title}</h1>
               </>
             ) : (
               <>
-                <MessageSquare className="h-5 w-5 text-purple-500" />
-                <h1 className="text-lg font-semibold">Answering Task</h1>
+                <MessageSquare className="h-4 w-4 sm:h-5 sm:w-5 text-purple-500 shrink-0" />
+                <h1 className="text-sm sm:text-lg font-semibold truncate">Answering Task</h1>
               </>
             )}
           </div>
-          <div className="ml-auto flex items-center gap-3">
+          <div className="flex items-center gap-1.5 sm:gap-3 shrink-0">
             {task.status === "pending" && (
               <Button
                 variant="outline"
                 size="sm"
                 onClick={handleSkip}
                 disabled={skipTask.isPending}
+                className="h-8 px-2 sm:px-3"
               >
                 {skipTask.isPending ? (
                   <Loader2 className="h-4 w-4 animate-spin" />
                 ) : (
                   <>
-                    <SkipForward className="h-4 w-4 mr-1" />
-                    Skip
+                    <SkipForward className="h-4 w-4 sm:mr-1" />
+                    <span className="hidden sm:inline">Skip</span>
                   </>
                 )}
               </Button>
             )}
             {task.status === "skipped" && (
               <>
-                <div className="flex items-center gap-1.5 px-3 py-1 rounded-full text-sm font-medium bg-gray-500/10 text-gray-500">
+                <div className="hidden sm:flex items-center gap-1.5 px-3 py-1 rounded-full text-sm font-medium bg-gray-500/10 text-gray-500">
                   <SkipForward className="h-4 w-4" />
                   Skipped
                 </div>
@@ -127,13 +128,14 @@ export function TaskPage() {
                   size="sm"
                   onClick={handleRedo}
                   disabled={redoTask.isPending}
+                  className="h-8 px-2 sm:px-3"
                 >
                   {redoTask.isPending ? (
                     <Loader2 className="h-4 w-4 animate-spin" />
                   ) : (
                     <>
-                      <RotateCcw className="h-4 w-4 mr-1" />
-                      Redo
+                      <RotateCcw className="h-4 w-4 sm:mr-1" />
+                      <span className="hidden sm:inline">Redo</span>
                     </>
                   )}
                 </Button>
@@ -144,7 +146,7 @@ export function TaskPage() {
                 {task.result && (
                   <div
                     className={cn(
-                      "flex items-center gap-1.5 px-3 py-1 rounded-full text-sm font-medium",
+                      "flex items-center gap-1 sm:gap-1.5 px-2 sm:px-3 py-1 rounded-full text-xs sm:text-sm font-medium",
                       task.result === "correct"
                         ? "bg-green-500/10 text-green-500"
                         : "bg-red-500/10 text-red-500"
@@ -152,13 +154,13 @@ export function TaskPage() {
                   >
                     {task.result === "correct" ? (
                       <>
-                        <CheckCircle2 className="h-4 w-4" />
-                        Correct
+                        <CheckCircle2 className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
+                        <span className="hidden sm:inline">Correct</span>
                       </>
                     ) : (
                       <>
-                        <XCircle className="h-4 w-4" />
-                        Wrong
+                        <XCircle className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
+                        <span className="hidden sm:inline">Wrong</span>
                       </>
                     )}
                   </div>
@@ -168,13 +170,14 @@ export function TaskPage() {
                   size="sm"
                   onClick={handleRedo}
                   disabled={redoTask.isPending}
+                  className="h-8 px-2 sm:px-3"
                 >
                   {redoTask.isPending ? (
                     <Loader2 className="h-4 w-4 animate-spin" />
                   ) : (
                     <>
-                      <RotateCcw className="h-4 w-4 mr-1" />
-                      Redo
+                      <RotateCcw className="h-4 w-4 sm:mr-1" />
+                      <span className="hidden sm:inline">Redo</span>
                     </>
                   )}
                 </Button>
@@ -266,6 +269,7 @@ function CodingTask({ task }: TaskProps) {
   const [showSolution, setShowSolution] = useState(false);
   const [showFeedback, setShowFeedback] = useState(false);
   const [showNote, setShowNote] = useState(false);
+  const [showDescription, setShowDescription] = useState(false);
   const [evaluation, setEvaluation] = useState<CodeEvaluationResult | null>(() => {
     if (task.evaluation_feedback) {
       try {
@@ -330,8 +334,8 @@ function CodingTask({ task }: TaskProps) {
   };
 
   return (
-    <div className="flex h-[calc(100vh-73px)]">
-      <div className="w-[340px] border-r border-border bg-zinc-950 flex flex-col">
+    <div className="flex flex-col lg:flex-row flex-1 min-h-0">
+      <div className="hidden lg:flex w-[340px] border-r border-border bg-zinc-950 flex-col shrink-0">
         <div className="p-5 border-b border-zinc-800">
           <div className="flex items-center gap-2 mb-3">
             <div className="p-2 rounded-lg bg-blue-500/10">
@@ -394,15 +398,15 @@ function CodingTask({ task }: TaskProps) {
         )}
 
         {showSolution && task.expected_answer && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm">
-            <div className="w-full max-w-3xl bg-zinc-900 rounded-xl border border-zinc-700 shadow-2xl overflow-hidden">
-              <div className="flex items-center justify-between px-5 py-4 border-b border-zinc-700">
-                <div className="flex items-center gap-3">
-                  <div className="p-2 rounded-lg bg-blue-500/10">
-                    <Code className="h-5 w-5 text-blue-400" />
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-2 sm:p-4 bg-black/70 backdrop-blur-sm">
+            <div className="w-full h-full sm:h-auto sm:max-h-[90vh] max-w-3xl bg-zinc-900 sm:rounded-xl border border-zinc-700 shadow-2xl overflow-hidden flex flex-col">
+              <div className="flex items-center justify-between px-4 sm:px-5 py-3 sm:py-4 border-b border-zinc-700 shrink-0">
+                <div className="flex items-center gap-2 sm:gap-3">
+                  <div className="p-1.5 sm:p-2 rounded-lg bg-blue-500/10">
+                    <Code className="h-4 w-4 sm:h-5 sm:w-5 text-blue-400" />
                   </div>
                   <div>
-                    <h3 className="text-lg font-semibold text-white">Reference Solution</h3>
+                    <h3 className="text-base sm:text-lg font-semibold text-white">Reference Solution</h3>
                     <p className="text-xs text-zinc-400">{currentLang.name}</p>
                   </div>
                 </div>
@@ -413,14 +417,14 @@ function CodingTask({ task }: TaskProps) {
                   <XCircle className="h-5 w-5" />
                 </button>
               </div>
-              <div className="h-[500px]">
+              <div className="flex-1 min-h-0 h-[400px] sm:h-[500px]">
                 <Editor
                   height="100%"
                   language={currentLang.monaco}
                   value={formattedSolution}
                   theme="vs-dark"
                   options={{
-                    fontSize: 14,
+                    fontSize: 13,
                     fontFamily: "'JetBrains Mono', 'Fira Code', 'Cascadia Code', Consolas, monospace",
                     minimap: { enabled: false },
                     lineNumbers: "on",
@@ -428,7 +432,7 @@ function CodingTask({ task }: TaskProps) {
                     automaticLayout: true,
                     tabSize: 2,
                     wordWrap: "on",
-                    padding: { top: 16, bottom: 16 },
+                    padding: { top: 12, bottom: 12 },
                     readOnly: true,
                     renderLineHighlight: "none",
                     scrollbar: {
@@ -443,19 +447,19 @@ function CodingTask({ task }: TaskProps) {
         )}
 
         {showNote && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm">
-            <div className="w-full max-w-3xl bg-zinc-900 rounded-xl border border-zinc-700 shadow-2xl overflow-hidden">
-              <div className="flex items-center justify-between px-5 py-4 border-b border-zinc-700">
-                <div className="flex items-center gap-3">
-                  <div className="p-2 rounded-lg bg-emerald-500/10">
-                    <BookOpen className="h-5 w-5 text-emerald-400" />
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-2 sm:p-4 bg-black/70 backdrop-blur-sm">
+            <div className="w-full h-full sm:h-auto sm:max-h-[90vh] max-w-3xl bg-zinc-900 sm:rounded-xl border border-zinc-700 shadow-2xl overflow-hidden flex flex-col">
+              <div className="flex items-center justify-between px-4 sm:px-5 py-3 sm:py-4 border-b border-zinc-700 shrink-0">
+                <div className="flex items-center gap-2 sm:gap-3">
+                  <div className="p-1.5 sm:p-2 rounded-lg bg-emerald-500/10">
+                    <BookOpen className="h-4 w-4 sm:h-5 sm:w-5 text-emerald-400" />
                   </div>
-                  <div>
-                    <h3 className="text-lg font-semibold text-white">{note?.title || "Loading..."}</h3>
+                  <div className="min-w-0">
+                    <h3 className="text-base sm:text-lg font-semibold text-white truncate">{note?.title || "Loading..."}</h3>
                     <p className="text-xs text-zinc-400">Study material for this task</p>
                   </div>
                 </div>
-                <div className="flex items-center gap-2">
+                <div className="flex items-center gap-1 sm:gap-2 shrink-0">
                   {task.note_id && (
                     <button
                       onClick={() => navigate(`/notes/${task.note_id}`)}
@@ -473,14 +477,14 @@ function CodingTask({ task }: TaskProps) {
                   </button>
                 </div>
               </div>
-              <div className="h-[500px] overflow-auto p-6">
+              <div className="flex-1 overflow-auto p-4 sm:p-6">
                 {isNoteLoading ? (
                   <div className="flex items-center justify-center h-full">
                     <Loader2 className="h-8 w-8 animate-spin text-emerald-500" />
                   </div>
                 ) : note ? (
                   <div 
-                    className="prose prose-invert prose-emerald max-w-none prose-headings:text-zinc-200 prose-p:text-zinc-300 prose-strong:text-zinc-200 prose-code:text-emerald-400 prose-code:bg-zinc-800 prose-code:px-1 prose-code:py-0.5 prose-code:rounded prose-pre:bg-zinc-800 prose-pre:border prose-pre:border-zinc-700"
+                    className="prose prose-invert prose-emerald max-w-none prose-headings:text-zinc-200 prose-p:text-zinc-300 prose-strong:text-zinc-200 prose-code:text-emerald-400 prose-code:bg-zinc-800 prose-code:px-1 prose-code:py-0.5 prose-code:rounded prose-pre:bg-zinc-800 prose-pre:border prose-pre:border-zinc-700 text-sm sm:text-base"
                     dangerouslySetInnerHTML={{ __html: note.content }}
                   />
                 ) : (
@@ -492,21 +496,96 @@ function CodingTask({ task }: TaskProps) {
         )}
       </div>
 
-      <div className="flex-1 flex flex-col">
-        <div className="flex items-center justify-between px-4 py-3 border-b border-border bg-card">
-          <div className="flex items-center gap-3">
+      {showDescription && (
+        <div className="fixed inset-0 z-50 flex items-end lg:hidden bg-black/70 backdrop-blur-sm" onClick={() => setShowDescription(false)}>
+          <div className="w-full max-h-[70vh] bg-zinc-900 rounded-t-xl border-t border-zinc-700 shadow-2xl overflow-hidden flex flex-col" onClick={(e) => e.stopPropagation()}>
+            <div className="flex items-center justify-between px-4 py-3 border-b border-zinc-700 shrink-0">
+              <div className="flex items-center gap-2">
+                <div className="p-1.5 rounded-lg bg-blue-500/10">
+                  <Code className="h-4 w-4 text-blue-400" />
+                </div>
+                <h3 className="text-base font-semibold text-white">Challenge Details</h3>
+              </div>
+              <button
+                onClick={() => setShowDescription(false)}
+                className="p-2 rounded-lg hover:bg-zinc-800 transition-colors text-zinc-400 hover:text-white"
+              >
+                <XCircle className="h-5 w-5" />
+              </button>
+            </div>
+            <div className="flex-1 overflow-auto p-4 space-y-4">
+              {task.description && (
+                <p className="text-sm text-zinc-300 leading-relaxed whitespace-pre-wrap">
+                  {task.description}
+                </p>
+              )}
+              
+              <div className="p-3 rounded-lg bg-blue-500/10 border border-blue-500/20">
+                <p className="text-xs font-medium text-blue-400 mb-1">📝 Note</p>
+                <p className="text-sm text-blue-300">
+                  Explain the code by using comments. The comments are used for evaluation as well.
+                </p>
+              </div>
+
+              {task.note_id && (
+                <div className="p-3 rounded-lg bg-emerald-500/10 border border-emerald-500/20">
+                  <p className="text-xs font-medium text-emerald-400 mb-2">📚 Study Material</p>
+                  <div className="flex gap-2">
+                    <button
+                      onClick={() => { setShowDescription(false); setShowNote(true); }}
+                      className="flex-1 flex items-center justify-center gap-2 px-3 py-2 rounded-lg bg-emerald-600 hover:bg-emerald-500 transition-colors text-sm font-medium text-white"
+                    >
+                      <BookOpen className="h-4 w-4" />
+                      Review Note
+                    </button>
+                    <button
+                      onClick={() => navigate(`/notes/${task.note_id}`)}
+                      className="flex items-center justify-center px-3 py-2 rounded-lg bg-zinc-700 hover:bg-zinc-600 transition-colors text-sm font-medium text-zinc-300"
+                      title="Open note in editor"
+                    >
+                      <ExternalLink className="h-4 w-4" />
+                    </button>
+                  </div>
+                </div>
+              )}
+
+              {task.expected_answer && (
+                <button
+                  onClick={() => { setShowDescription(false); setShowSolution(true); }}
+                  className="w-full flex items-center justify-center gap-2 px-3 py-2.5 rounded-lg bg-amber-600 hover:bg-amber-500 transition-colors text-sm font-medium text-white"
+                >
+                  <Code className="h-4 w-4" />
+                  {isCompleted ? "View Reference Solution" : "Peek at Solution"}
+                </button>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      <div className="flex-1 flex flex-col min-h-0">
+        <div className="flex items-center justify-between px-2 sm:px-4 py-2 sm:py-3 border-b border-border bg-card gap-2 shrink-0">
+          <div className="flex items-center gap-2 sm:gap-3">
+            <button
+              onClick={() => setShowDescription(true)}
+              className="lg:hidden flex items-center gap-1.5 px-2 py-1.5 rounded-lg text-xs sm:text-sm font-medium transition-colors bg-blue-500/10 text-blue-400 hover:bg-blue-500/20 border border-blue-500/20"
+            >
+              <Code className="h-3.5 w-3.5" />
+              <span className="hidden sm:inline">Details</span>
+            </button>
             <div className="relative">
               <button
                 onClick={() => !isCompleted && setShowLanguageMenu(!showLanguageMenu)}
                 className={cn(
-                  "flex items-center gap-2 px-3 py-1.5 rounded-lg text-sm font-medium transition-colors border",
+                  "flex items-center gap-1 sm:gap-2 px-2 sm:px-3 py-1.5 rounded-lg text-xs sm:text-sm font-medium transition-colors border",
                   isCompleted 
                     ? "bg-muted text-muted-foreground cursor-not-allowed border-transparent"
                     : "bg-zinc-800 hover:bg-zinc-700 text-white border-zinc-700"
                 )}
                 disabled={isCompleted}
               >
-                {currentLang.name}
+                <span className="hidden sm:inline">{currentLang.name}</span>
+                <span className="sm:hidden">{currentLang.id.toUpperCase()}</span>
                 {!isCompleted && <ChevronDown className="h-3 w-3" />}
               </button>
               {showLanguageMenu && (
@@ -515,7 +594,7 @@ function CodingTask({ task }: TaskProps) {
                     className="fixed inset-0 z-10" 
                     onClick={() => setShowLanguageMenu(false)}
                   />
-                  <div className="absolute top-full left-0 mt-1 z-20 bg-zinc-800 border border-zinc-700 rounded-lg shadow-xl py-1 min-w-[160px]">
+                  <div className="absolute top-full left-0 mt-1 z-20 bg-zinc-800 border border-zinc-700 rounded-lg shadow-xl py-1 min-w-[140px] sm:min-w-[160px] max-h-[60vh] overflow-auto">
                     {SUPPORTED_LANGUAGES.map((lang) => (
                       <button
                         key={lang.id}
@@ -524,7 +603,7 @@ function CodingTask({ task }: TaskProps) {
                           setShowLanguageMenu(false);
                         }}
                         className={cn(
-                          "w-full px-4 py-2 text-left text-sm hover:bg-zinc-700 transition-colors text-zinc-200",
+                          "w-full px-3 sm:px-4 py-2 text-left text-sm hover:bg-zinc-700 transition-colors text-zinc-200",
                           lang.id === selectedLanguage && "bg-zinc-700 font-medium text-white"
                         )}
                       >
@@ -536,41 +615,41 @@ function CodingTask({ task }: TaskProps) {
               )}
             </div>
           </div>
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-1.5 sm:gap-2">
             <Button
               onClick={runCode}
               disabled={isRunning || !code.trim()}
               size="sm"
               variant="outline"
-              className="border-zinc-700 text-zinc-300 hover:bg-zinc-800"
+              className="border-zinc-700 text-zinc-300 hover:bg-zinc-800 h-8 px-2 sm:px-3"
             >
               {isRunning ? (
-                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                <Loader2 className="h-4 w-4 animate-spin" />
               ) : (
-                <Play className="h-4 w-4 mr-2" />
+                <Play className="h-4 w-4" />
               )}
-              Run
+              <span className="hidden sm:inline ml-2">Run</span>
             </Button>
             {!isCompleted && (
               <Button
                 onClick={submitCode}
                 disabled={isSubmitting || !code.trim()}
                 size="sm"
-                className="bg-blue-600 hover:bg-blue-500 text-white px-4"
+                className="bg-blue-600 hover:bg-blue-500 text-white h-8 px-2 sm:px-4"
               >
                 {isSubmitting ? (
-                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  <Loader2 className="h-4 w-4 animate-spin" />
                 ) : (
-                  <Send className="h-4 w-4 mr-2" />
+                  <Send className="h-4 w-4" />
                 )}
-                Submit for Grading
+                <span className="hidden sm:inline ml-2">Submit</span>
               </Button>
             )}
           </div>
         </div>
 
-        <div className="flex-1 flex flex-col">
-          <div className="flex-1 min-h-0">
+        <div className="flex-1 flex flex-col min-h-0">
+          <div className="flex-1 min-h-[200px]">
             <Editor
               height="100%"
               language={currentLang.monaco}
@@ -578,7 +657,7 @@ function CodingTask({ task }: TaskProps) {
               onChange={(value) => setCode(value || "")}
               theme="vs-dark"
               options={{
-                fontSize: 14,
+                fontSize: 13,
                 fontFamily: "'JetBrains Mono', 'Fira Code', 'Cascadia Code', Consolas, monospace",
                 minimap: { enabled: false },
                 lineNumbers: "on",
@@ -586,7 +665,7 @@ function CodingTask({ task }: TaskProps) {
                 automaticLayout: true,
                 tabSize: 2,
                 wordWrap: "on",
-                padding: { top: 16, bottom: 16 },
+                padding: { top: 12, bottom: 12 },
                 readOnly: isCompleted,
                 renderLineHighlight: "all",
                 cursorBlinking: "smooth",
@@ -595,32 +674,33 @@ function CodingTask({ task }: TaskProps) {
             />
           </div>
           
-          <div className="h-[180px] border-t border-zinc-800 bg-zinc-950 flex flex-col">
-            <div className="flex items-center justify-between px-4 py-2 border-b border-zinc-800">
+          <div className="h-[140px] sm:h-[180px] border-t border-zinc-800 bg-zinc-950 flex flex-col shrink-0">
+            <div className="flex items-center justify-between px-3 sm:px-4 py-2 border-b border-zinc-800">
               <div className="flex items-center gap-2">
                 <Terminal className="h-4 w-4 text-green-500" />
-                <span className="text-sm font-medium text-zinc-300">Output</span>
+                <span className="text-xs sm:text-sm font-medium text-zinc-300">Output</span>
               </div>
               {evaluation && (
                 <button
                   onClick={() => setShowFeedback(true)}
                   className={cn(
-                    "flex items-center gap-2 px-3 py-1.5 rounded-lg text-sm font-medium transition-colors",
+                    "flex items-center gap-1 sm:gap-2 px-2 sm:px-3 py-1 sm:py-1.5 rounded-lg text-xs sm:text-sm font-medium transition-colors",
                     evaluation.is_correct 
                       ? "bg-green-500/10 text-green-400 hover:bg-green-500/20" 
                       : "bg-red-500/10 text-red-400 hover:bg-red-500/20"
                   )}
                 >
                   {evaluation.is_correct ? (
-                    <CheckCircle2 className="h-4 w-4" />
+                    <CheckCircle2 className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
                   ) : (
-                    <XCircle className="h-4 w-4" />
+                    <XCircle className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
                   )}
-                  {evaluation.is_correct ? "Passed - View Feedback" : "Failed - View Feedback"}
+                  <span className="hidden sm:inline">{evaluation.is_correct ? "Passed - View Feedback" : "Failed - View Feedback"}</span>
+                  <span className="sm:hidden">{evaluation.is_correct ? "Passed" : "Failed"}</span>
                 </button>
               )}
             </div>
-            <div className="flex-1 p-4 overflow-auto font-mono text-sm">
+            <div className="flex-1 p-3 sm:p-4 overflow-auto font-mono text-xs sm:text-sm">
               {output ? (
                 <pre className="text-green-400 whitespace-pre-wrap">{output}</pre>
               ) : (
@@ -632,28 +712,28 @@ function CodingTask({ task }: TaskProps) {
       </div>
 
       {showFeedback && evaluation && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm">
-          <div className="w-full max-w-2xl bg-zinc-900 rounded-xl border border-zinc-700 shadow-2xl overflow-hidden">
-            <div className="flex items-center justify-between px-6 py-4 border-b border-zinc-700">
-              <div className="flex items-center gap-3">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-2 sm:p-4 bg-black/70 backdrop-blur-sm">
+          <div className="w-full h-full sm:h-auto sm:max-h-[90vh] max-w-2xl bg-zinc-900 sm:rounded-xl border border-zinc-700 shadow-2xl overflow-hidden flex flex-col">
+            <div className="flex items-center justify-between px-4 sm:px-6 py-3 sm:py-4 border-b border-zinc-700 shrink-0">
+              <div className="flex items-center gap-2 sm:gap-3">
                 <div className={cn(
-                  "p-2 rounded-lg",
+                  "p-1.5 sm:p-2 rounded-lg",
                   evaluation.is_correct ? "bg-green-500/10" : "bg-red-500/10"
                 )}>
                   {evaluation.is_correct ? (
-                    <CheckCircle2 className="h-6 w-6 text-green-400" />
+                    <CheckCircle2 className="h-5 w-5 sm:h-6 sm:w-6 text-green-400" />
                   ) : (
-                    <XCircle className="h-6 w-6 text-red-400" />
+                    <XCircle className="h-5 w-5 sm:h-6 sm:w-6 text-red-400" />
                   )}
                 </div>
                 <div>
                   <h3 className={cn(
-                    "text-xl font-semibold",
+                    "text-lg sm:text-xl font-semibold",
                     evaluation.is_correct ? "text-green-400" : "text-red-400"
                   )}>
                     {evaluation.is_correct ? "Great Job!" : "Keep Learning"}
                   </h3>
-                  <p className="text-sm text-zinc-400">AI Evaluation Result</p>
+                  <p className="text-xs sm:text-sm text-zinc-400">AI Evaluation Result</p>
                 </div>
               </div>
               <button
@@ -664,36 +744,36 @@ function CodingTask({ task }: TaskProps) {
               </button>
             </div>
             
-            <div className="p-6 space-y-5 max-h-[60vh] overflow-auto">
-              <div className="p-4 rounded-lg bg-zinc-800/50">
-                <h4 className="text-sm font-semibold text-zinc-300 mb-2 flex items-center gap-2">
+            <div className="p-4 sm:p-6 space-y-4 sm:space-y-5 flex-1 overflow-auto">
+              <div className="p-3 sm:p-4 rounded-lg bg-zinc-800/50">
+                <h4 className="text-xs sm:text-sm font-semibold text-zinc-300 mb-2 flex items-center gap-2">
                   <MessageSquare className="h-4 w-4 text-blue-400" />
                   Feedback
                 </h4>
-                <p className="text-zinc-300 leading-relaxed">{evaluation.feedback}</p>
+                <p className="text-sm sm:text-base text-zinc-300 leading-relaxed">{evaluation.feedback}</p>
               </div>
               
-              <div className="p-4 rounded-lg bg-zinc-800/50">
-                <h4 className="text-sm font-semibold text-zinc-300 mb-2 flex items-center gap-2">
+              <div className="p-3 sm:p-4 rounded-lg bg-zinc-800/50">
+                <h4 className="text-xs sm:text-sm font-semibold text-zinc-300 mb-2 flex items-center gap-2">
                   <Code className="h-4 w-4 text-purple-400" />
                   Concept Understanding
                 </h4>
-                <p className="text-zinc-300 leading-relaxed">{evaluation.concept_understanding}</p>
+                <p className="text-sm sm:text-base text-zinc-300 leading-relaxed">{evaluation.concept_understanding}</p>
               </div>
               
-              <div className="p-4 rounded-lg bg-zinc-800/50">
-                <h4 className="text-sm font-semibold text-zinc-300 mb-2 flex items-center gap-2">
+              <div className="p-3 sm:p-4 rounded-lg bg-zinc-800/50">
+                <h4 className="text-xs sm:text-sm font-semibold text-zinc-300 mb-2 flex items-center gap-2">
                   <MessageSquare className="h-4 w-4 text-amber-400" />
                   Comment Quality
                 </h4>
-                <p className="text-zinc-300 leading-relaxed">{evaluation.comment_quality}</p>
+                <p className="text-sm sm:text-base text-zinc-300 leading-relaxed">{evaluation.comment_quality}</p>
               </div>
             </div>
             
-            <div className="px-6 py-4 border-t border-zinc-700 bg-zinc-800/30">
+            <div className="px-4 sm:px-6 py-3 sm:py-4 border-t border-zinc-700 bg-zinc-800/30 shrink-0">
               <button
                 onClick={() => setShowFeedback(false)}
-                className="w-full py-2.5 rounded-lg bg-zinc-700 hover:bg-zinc-600 text-white font-medium transition-colors"
+                className="w-full py-2 sm:py-2.5 rounded-lg bg-zinc-700 hover:bg-zinc-600 text-white font-medium transition-colors text-sm sm:text-base"
               >
                 Close
               </button>
@@ -741,18 +821,18 @@ function AnsweringTask({ task }: TaskProps) {
   };
 
   return (
-    <div className="max-w-3xl mx-auto px-6 py-6">
-      <div className="mb-6 p-5 rounded-lg bg-purple-500/10 border border-purple-500/20">
+    <div className="max-w-3xl mx-auto px-4 sm:px-6 py-4 sm:py-6 flex-1 overflow-auto">
+      <div className="mb-4 sm:mb-6 p-4 sm:p-5 rounded-lg bg-purple-500/10 border border-purple-500/20">
         <p className="text-xs font-semibold text-purple-400 uppercase tracking-wide mb-2">
           Question
         </p>
-        <p className="text-lg font-medium text-foreground">
+        <p className="text-base sm:text-lg font-medium text-foreground">
           {task.title}
         </p>
       </div>
 
       {task.description && (
-        <div className="mb-6 p-4 rounded-lg bg-muted/30 border border-border">
+        <div className="mb-4 sm:mb-6 p-3 sm:p-4 rounded-lg bg-muted/30 border border-border">
           <p className="text-xs font-medium text-muted-foreground mb-2">
             💡 Hints - Consider these points in your answer:
           </p>
@@ -763,21 +843,22 @@ function AnsweringTask({ task }: TaskProps) {
       )}
 
       {task.note_id && (
-        <div className="mb-6 p-4 rounded-lg bg-emerald-500/10 border border-emerald-500/20">
+        <div className="mb-4 sm:mb-6 p-3 sm:p-4 rounded-lg bg-emerald-500/10 border border-emerald-500/20">
           <p className="text-xs font-semibold text-emerald-500 uppercase tracking-wide mb-2">
             📚 Need to review the concept?
           </p>
           <div className="flex gap-2">
             <button
               onClick={() => setShowNote(true)}
-              className="flex-1 flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg bg-emerald-600 hover:bg-emerald-500 transition-colors text-sm font-medium text-white"
+              className="flex-1 flex items-center justify-center gap-2 px-3 sm:px-4 py-2 sm:py-2.5 rounded-lg bg-emerald-600 hover:bg-emerald-500 transition-colors text-sm font-medium text-white"
             >
               <BookOpen className="h-4 w-4" />
-              Review Note
+              <span className="hidden sm:inline">Review Note</span>
+              <span className="sm:hidden">Review</span>
             </button>
             <button
               onClick={() => navigate(`/notes/${task.note_id}`)}
-              className="flex items-center justify-center px-4 py-2.5 rounded-lg bg-muted hover:bg-muted/80 transition-colors text-sm font-medium text-muted-foreground"
+              className="flex items-center justify-center px-3 sm:px-4 py-2 sm:py-2.5 rounded-lg bg-muted hover:bg-muted/80 transition-colors text-sm font-medium text-muted-foreground"
               title="Open note in editor"
             >
               <ExternalLink className="h-4 w-4" />
@@ -786,7 +867,7 @@ function AnsweringTask({ task }: TaskProps) {
         </div>
       )}
 
-      <div className="space-y-4">
+      <div className="space-y-3 sm:space-y-4">
         <label className="text-sm font-medium text-muted-foreground">
           Your Answer
         </label>
@@ -794,7 +875,7 @@ function AnsweringTask({ task }: TaskProps) {
           value={answer}
           onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => setAnswer(e.target.value)}
           placeholder="Type your answer here..."
-          className="min-h-[200px] resize-none"
+          className="min-h-[150px] sm:min-h-[200px] resize-none text-sm sm:text-base"
           disabled={isCompleted}
         />
 
@@ -817,18 +898,18 @@ function AnsweringTask({ task }: TaskProps) {
           <button
             onClick={() => setShowFeedback(true)}
             className={cn(
-              "w-full flex items-center justify-center gap-2 p-4 rounded-lg transition-colors",
+              "w-full flex items-center justify-center gap-2 p-3 sm:p-4 rounded-lg transition-colors",
               evaluation.is_correct 
                 ? "bg-green-500/10 border border-green-500/20 text-green-400 hover:bg-green-500/20" 
                 : "bg-red-500/10 border border-red-500/20 text-red-400 hover:bg-red-500/20"
             )}
           >
             {evaluation.is_correct ? (
-              <CheckCircle2 className="h-5 w-5" />
+              <CheckCircle2 className="h-4 w-4 sm:h-5 sm:w-5" />
             ) : (
-              <XCircle className="h-5 w-5" />
+              <XCircle className="h-4 w-4 sm:h-5 sm:w-5" />
             )}
-            <span className="font-semibold">
+            <span className="text-sm sm:text-base font-semibold">
               {evaluation.is_correct ? "Correct! - View Feedback" : "Needs Improvement - View Feedback"}
             </span>
           </button>
@@ -836,28 +917,28 @@ function AnsweringTask({ task }: TaskProps) {
       </div>
 
       {showFeedback && evaluation && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm">
-          <div className="w-full max-w-xl bg-zinc-900 rounded-xl border border-zinc-700 shadow-2xl overflow-hidden">
-            <div className="flex items-center justify-between px-6 py-4 border-b border-zinc-700">
-              <div className="flex items-center gap-3">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-2 sm:p-4 bg-black/70 backdrop-blur-sm">
+          <div className="w-full h-full sm:h-auto sm:max-h-[90vh] max-w-xl bg-zinc-900 sm:rounded-xl border border-zinc-700 shadow-2xl overflow-hidden flex flex-col">
+            <div className="flex items-center justify-between px-4 sm:px-6 py-3 sm:py-4 border-b border-zinc-700 shrink-0">
+              <div className="flex items-center gap-2 sm:gap-3">
                 <div className={cn(
-                  "p-2 rounded-lg",
+                  "p-1.5 sm:p-2 rounded-lg",
                   evaluation.is_correct ? "bg-green-500/10" : "bg-red-500/10"
                 )}>
                   {evaluation.is_correct ? (
-                    <CheckCircle2 className="h-6 w-6 text-green-400" />
+                    <CheckCircle2 className="h-5 w-5 sm:h-6 sm:w-6 text-green-400" />
                   ) : (
-                    <XCircle className="h-6 w-6 text-red-400" />
+                    <XCircle className="h-5 w-5 sm:h-6 sm:w-6 text-red-400" />
                   )}
                 </div>
                 <div>
                   <h3 className={cn(
-                    "text-xl font-semibold",
+                    "text-lg sm:text-xl font-semibold",
                     evaluation.is_correct ? "text-green-400" : "text-red-400"
                   )}>
                     {evaluation.is_correct ? "Great Understanding!" : "Keep Learning"}
                   </h3>
-                  <p className="text-sm text-zinc-400">AI Evaluation Result</p>
+                  <p className="text-xs sm:text-sm text-zinc-400">AI Evaluation Result</p>
                 </div>
               </div>
               <button
@@ -868,20 +949,20 @@ function AnsweringTask({ task }: TaskProps) {
               </button>
             </div>
             
-            <div className="p-6 max-h-[60vh] overflow-auto">
-              <div className="p-4 rounded-lg bg-zinc-800/50">
-                <h4 className="text-sm font-semibold text-zinc-300 mb-3 flex items-center gap-2">
+            <div className="p-4 sm:p-6 flex-1 overflow-auto">
+              <div className="p-3 sm:p-4 rounded-lg bg-zinc-800/50">
+                <h4 className="text-xs sm:text-sm font-semibold text-zinc-300 mb-2 sm:mb-3 flex items-center gap-2">
                   <MessageSquare className="h-4 w-4 text-blue-400" />
                   Feedback
                 </h4>
-                <p className="text-zinc-300 leading-relaxed">{evaluation.feedback}</p>
+                <p className="text-sm sm:text-base text-zinc-300 leading-relaxed">{evaluation.feedback}</p>
               </div>
             </div>
             
-            <div className="px-6 py-4 border-t border-zinc-700 bg-zinc-800/30">
+            <div className="px-4 sm:px-6 py-3 sm:py-4 border-t border-zinc-700 bg-zinc-800/30 shrink-0">
               <button
                 onClick={() => setShowFeedback(false)}
-                className="w-full py-2.5 rounded-lg bg-zinc-700 hover:bg-zinc-600 text-white font-medium transition-colors"
+                className="w-full py-2 sm:py-2.5 rounded-lg bg-zinc-700 hover:bg-zinc-600 text-white font-medium transition-colors text-sm sm:text-base"
               >
                 Close
               </button>
@@ -891,19 +972,19 @@ function AnsweringTask({ task }: TaskProps) {
       )}
 
       {showNote && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm">
-          <div className="w-full max-w-3xl bg-zinc-900 rounded-xl border border-zinc-700 shadow-2xl overflow-hidden">
-            <div className="flex items-center justify-between px-5 py-4 border-b border-zinc-700">
-              <div className="flex items-center gap-3">
-                <div className="p-2 rounded-lg bg-emerald-500/10">
-                  <BookOpen className="h-5 w-5 text-emerald-400" />
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-2 sm:p-4 bg-black/70 backdrop-blur-sm">
+          <div className="w-full h-full sm:h-auto sm:max-h-[90vh] max-w-3xl bg-zinc-900 sm:rounded-xl border border-zinc-700 shadow-2xl overflow-hidden flex flex-col">
+            <div className="flex items-center justify-between px-4 sm:px-5 py-3 sm:py-4 border-b border-zinc-700 shrink-0">
+              <div className="flex items-center gap-2 sm:gap-3 min-w-0 flex-1">
+                <div className="p-1.5 sm:p-2 rounded-lg bg-emerald-500/10 shrink-0">
+                  <BookOpen className="h-4 w-4 sm:h-5 sm:w-5 text-emerald-400" />
                 </div>
-                <div>
-                  <h3 className="text-lg font-semibold text-white">{note?.title || "Loading..."}</h3>
+                <div className="min-w-0">
+                  <h3 className="text-base sm:text-lg font-semibold text-white truncate">{note?.title || "Loading..."}</h3>
                   <p className="text-xs text-zinc-400">Study material for this question</p>
                 </div>
               </div>
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-1 sm:gap-2 shrink-0">
                 {task.note_id && (
                   <button
                     onClick={() => navigate(`/notes/${task.note_id}`)}
@@ -921,14 +1002,14 @@ function AnsweringTask({ task }: TaskProps) {
                 </button>
               </div>
             </div>
-            <div className="h-[500px] overflow-auto p-6">
+            <div className="flex-1 overflow-auto p-4 sm:p-6">
               {isNoteLoading ? (
-                <div className="flex items-center justify-center h-full">
+                <div className="flex items-center justify-center h-full min-h-[200px]">
                   <Loader2 className="h-8 w-8 animate-spin text-emerald-500" />
                 </div>
               ) : note ? (
                 <div 
-                  className="prose prose-invert prose-emerald max-w-none prose-headings:text-zinc-200 prose-p:text-zinc-300 prose-strong:text-zinc-200 prose-code:text-emerald-400 prose-code:bg-zinc-800 prose-code:px-1 prose-code:py-0.5 prose-code:rounded prose-pre:bg-zinc-800 prose-pre:border prose-pre:border-zinc-700"
+                  className="prose prose-invert prose-emerald max-w-none prose-headings:text-zinc-200 prose-p:text-zinc-300 prose-strong:text-zinc-200 prose-code:text-emerald-400 prose-code:bg-zinc-800 prose-code:px-1 prose-code:py-0.5 prose-code:rounded prose-pre:bg-zinc-800 prose-pre:border prose-pre:border-zinc-700 text-sm sm:text-base"
                   dangerouslySetInnerHTML={{ __html: note.content }}
                 />
               ) : (

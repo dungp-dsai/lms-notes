@@ -41,7 +41,7 @@ function ToolbarButton({
       }}
       title={title}
       className={cn(
-        "p-1.5 rounded-md transition-colors cursor-pointer",
+        "p-1 sm:p-1.5 rounded-md transition-colors cursor-pointer",
         active
           ? "bg-accent text-accent-foreground"
           : "text-muted-foreground hover:bg-accent/50 hover:text-foreground"
@@ -53,10 +53,10 @@ function ToolbarButton({
 }
 
 export function Toolbar({ editor }: ToolbarProps) {
-  const iconSize = "h-4 w-4";
+  const iconSize = "h-3.5 w-3.5 sm:h-4 sm:w-4";
 
   return (
-    <div className="flex items-center gap-0.5 border-b border-border px-3 py-1.5 flex-wrap">
+    <div className="flex items-center gap-0.5 border-b border-border px-2 sm:px-3 py-1 sm:py-1.5 flex-wrap shrink-0 overflow-x-auto">
       <ToolbarButton
         onClick={() => editor.chain().focus().toggleBold().run()}
         active={editor.isActive("bold")}
@@ -93,7 +93,7 @@ export function Toolbar({ editor }: ToolbarProps) {
         <Code className={iconSize} />
       </ToolbarButton>
 
-      <div className="mx-1 h-5 w-px bg-border" />
+      <div className="mx-0.5 sm:mx-1 h-4 sm:h-5 w-px bg-border hidden sm:block" />
 
       <ToolbarButton
         onClick={() =>
@@ -123,7 +123,7 @@ export function Toolbar({ editor }: ToolbarProps) {
         <Heading3 className={iconSize} />
       </ToolbarButton>
 
-      <div className="mx-1 h-5 w-px bg-border" />
+      <div className="mx-0.5 sm:mx-1 h-4 sm:h-5 w-px bg-border hidden sm:block" />
 
       <ToolbarButton
         onClick={() => editor.chain().focus().toggleBulletList().run()}
@@ -147,7 +147,7 @@ export function Toolbar({ editor }: ToolbarProps) {
         <CheckSquare className={iconSize} />
       </ToolbarButton>
 
-      <div className="mx-1 h-5 w-px bg-border" />
+      <div className="mx-0.5 sm:mx-1 h-4 sm:h-5 w-px bg-border hidden sm:block" />
 
       <ToolbarButton
         onClick={() => editor.chain().focus().toggleBlockquote().run()}
@@ -163,7 +163,7 @@ export function Toolbar({ editor }: ToolbarProps) {
         <Minus className={iconSize} />
       </ToolbarButton>
 
-      <div className="mx-1 h-5 w-px bg-border" />
+      <div className="mx-0.5 sm:mx-1 h-4 sm:h-5 w-px bg-border hidden sm:block" />
 
       <ToolbarButton
         onClick={() => editor.chain().focus().undo().run()}
