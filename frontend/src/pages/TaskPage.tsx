@@ -13,11 +13,13 @@ import {
   SkipForward,
   ChevronDown,
   Terminal,
+  BookOpen,
+  ExternalLink,
 } from "lucide-react";
 import Editor from "@monaco-editor/react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
-import { useTask, useRedoTask, useSkipTask, useEvaluateCode, useEvaluateAnswer } from "@/hooks/useNotes";
+import { useTask, useRedoTask, useSkipTask, useEvaluateCode, useEvaluateAnswer, useNote } from "@/hooks/useNotes";
 import type { CodeEvaluationResult, AnswerEvaluationResult } from "@/lib/api";
 import { cn } from "@/lib/utils";
 
@@ -263,8 +265,8 @@ function CodingTask({ task }: TaskProps) {
   const [showLanguageMenu, setShowLanguageMenu] = useState(false);
   const [showSolution, setShowSolution] = useState(false);
   const [showFeedback, setShowFeedback] = useState(false);
+  const [showNote, setShowNote] = useState(false);
   const [evaluation, setEvaluation] = useState<CodeEvaluationResult | null>(() => {
-    // Load saved evaluation feedback if available
     if (task.evaluation_feedback) {
       try {
         return JSON.parse(task.evaluation_feedback);
@@ -275,6 +277,8 @@ function CodingTask({ task }: TaskProps) {
     return null;
   });
   const evaluateCode = useEvaluateCode();
+  const { data: note, isLoading: isNoteLoading } = useNote(task.note_id);
+  const navigate = useNavigate();
 
   const isCompleted = task.status === "completed";
   const currentLang = SUPPORTED_LANGUAGES.find(l => l.id === selectedLanguage) || SUPPORTED_LANGUAGES[0];
@@ -353,6 +357,28 @@ function CodingTask({ task }: TaskProps) {
               Explain the code by using comments. The comments are used for evaluation as well.
             </p>
           </div>
+
+          {task.note_id && (
+            <div className="mt-4 p-3 rounded-lg bg-emerald-500/10 border border-emerald-500/20">
+              <p className="text-xs font-medium text-emerald-400 mb-2">📚 Study Material</p>
+              <div className="flex gap-2">
+                <button
+                  onClick={() => setShowNote(true)}
+                  className="flex-1 flex items-center justify-center gap-2 px-3 py-2 rounded-lg bg-emerald-600 hover:bg-emerald-500 transition-colors text-sm font-medium text-white"
+                >
+                  <BookOpen className="h-4 w-4" />
+                  Review Note
+                </button>
+                <button
+                  onClick={() => navigate(`/notes/${task.note_id}`)}
+                  className="flex items-center justify-center px-3 py-2 rounded-lg bg-zinc-700 hover:bg-zinc-600 transition-colors text-sm font-medium text-zinc-300"
+                  title="Open note in editor"
+                >
+                  <ExternalLink className="h-4 w-4" />
+                </button>
+              </div>
+            </div>
+          )}
         </div>
 
         {task.expected_answer && (
@@ -411,6 +437,55 @@ function CodingTask({ task }: TaskProps) {
                     },
                   }}
                 />
+              </div>
+            </div>
+          </div>
+        )}
+
+        {showNote && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm">
+            <div className="w-full max-w-3xl bg-zinc-900 rounded-xl border border-zinc-700 shadow-2xl overflow-hidden">
+              <div className="flex items-center justify-between px-5 py-4 border-b border-zinc-700">
+                <div className="flex items-center gap-3">
+                  <div className="p-2 rounded-lg bg-emerald-500/10">
+                    <BookOpen className="h-5 w-5 text-emerald-400" />
+                  </div>
+                  <div>
+                    <h3 className="text-lg font-semibold text-white">{note?.title || "Loading..."}</h3>
+                    <p className="text-xs text-zinc-400">Study material for this task</p>
+                  </div>
+                </div>
+                <div className="flex items-center gap-2">
+                  {task.note_id && (
+                    <button
+                      onClick={() => navigate(`/notes/${task.note_id}`)}
+                      className="p-2 rounded-lg hover:bg-zinc-800 transition-colors text-zinc-400 hover:text-white"
+                      title="Open in editor"
+                    >
+                      <ExternalLink className="h-5 w-5" />
+                    </button>
+                  )}
+                  <button
+                    onClick={() => setShowNote(false)}
+                    className="p-2 rounded-lg hover:bg-zinc-800 transition-colors text-zinc-400 hover:text-white"
+                  >
+                    <XCircle className="h-5 w-5" />
+                  </button>
+                </div>
+              </div>
+              <div className="h-[500px] overflow-auto p-6">
+                {isNoteLoading ? (
+                  <div className="flex items-center justify-center h-full">
+                    <Loader2 className="h-8 w-8 animate-spin text-emerald-500" />
+                  </div>
+                ) : note ? (
+                  <div 
+                    className="prose prose-invert prose-emerald max-w-none prose-headings:text-zinc-200 prose-p:text-zinc-300 prose-strong:text-zinc-200 prose-code:text-emerald-400 prose-code:bg-zinc-800 prose-code:px-1 prose-code:py-0.5 prose-code:rounded prose-pre:bg-zinc-800 prose-pre:border prose-pre:border-zinc-700"
+                    dangerouslySetInnerHTML={{ __html: note.content }}
+                  />
+                ) : (
+                  <p className="text-zinc-400 text-center">Note not found</p>
+                )}
               </div>
             </div>
           </div>
@@ -634,6 +709,7 @@ function AnsweringTask({ task }: TaskProps) {
   const [answer, setAnswer] = useState(task.user_answer || "");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [showFeedback, setShowFeedback] = useState(false);
+  const [showNote, setShowNote] = useState(false);
   const [evaluation, setEvaluation] = useState<AnswerEvaluationResult | null>(() => {
     if (task.evaluation_feedback) {
       try {
@@ -645,6 +721,8 @@ function AnsweringTask({ task }: TaskProps) {
     return null;
   });
   const evaluateAnswer = useEvaluateAnswer();
+  const { data: note, isLoading: isNoteLoading } = useNote(task.note_id);
+  const navigate = useNavigate();
   const isCompleted = task.status === "completed";
 
   const handleSubmit = async () => {
@@ -681,6 +759,30 @@ function AnsweringTask({ task }: TaskProps) {
           <p className="text-sm text-muted-foreground whitespace-pre-wrap">
             {task.description}
           </p>
+        </div>
+      )}
+
+      {task.note_id && (
+        <div className="mb-6 p-4 rounded-lg bg-emerald-500/10 border border-emerald-500/20">
+          <p className="text-xs font-semibold text-emerald-500 uppercase tracking-wide mb-2">
+            📚 Need to review the concept?
+          </p>
+          <div className="flex gap-2">
+            <button
+              onClick={() => setShowNote(true)}
+              className="flex-1 flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg bg-emerald-600 hover:bg-emerald-500 transition-colors text-sm font-medium text-white"
+            >
+              <BookOpen className="h-4 w-4" />
+              Review Note
+            </button>
+            <button
+              onClick={() => navigate(`/notes/${task.note_id}`)}
+              className="flex items-center justify-center px-4 py-2.5 rounded-lg bg-muted hover:bg-muted/80 transition-colors text-sm font-medium text-muted-foreground"
+              title="Open note in editor"
+            >
+              <ExternalLink className="h-4 w-4" />
+            </button>
+          </div>
         </div>
       )}
 
@@ -783,6 +885,55 @@ function AnsweringTask({ task }: TaskProps) {
               >
                 Close
               </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {showNote && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm">
+          <div className="w-full max-w-3xl bg-zinc-900 rounded-xl border border-zinc-700 shadow-2xl overflow-hidden">
+            <div className="flex items-center justify-between px-5 py-4 border-b border-zinc-700">
+              <div className="flex items-center gap-3">
+                <div className="p-2 rounded-lg bg-emerald-500/10">
+                  <BookOpen className="h-5 w-5 text-emerald-400" />
+                </div>
+                <div>
+                  <h3 className="text-lg font-semibold text-white">{note?.title || "Loading..."}</h3>
+                  <p className="text-xs text-zinc-400">Study material for this question</p>
+                </div>
+              </div>
+              <div className="flex items-center gap-2">
+                {task.note_id && (
+                  <button
+                    onClick={() => navigate(`/notes/${task.note_id}`)}
+                    className="p-2 rounded-lg hover:bg-zinc-800 transition-colors text-zinc-400 hover:text-white"
+                    title="Open in editor"
+                  >
+                    <ExternalLink className="h-5 w-5" />
+                  </button>
+                )}
+                <button
+                  onClick={() => setShowNote(false)}
+                  className="p-2 rounded-lg hover:bg-zinc-800 transition-colors text-zinc-400 hover:text-white"
+                >
+                  <XCircle className="h-5 w-5" />
+                </button>
+              </div>
+            </div>
+            <div className="h-[500px] overflow-auto p-6">
+              {isNoteLoading ? (
+                <div className="flex items-center justify-center h-full">
+                  <Loader2 className="h-8 w-8 animate-spin text-emerald-500" />
+                </div>
+              ) : note ? (
+                <div 
+                  className="prose prose-invert prose-emerald max-w-none prose-headings:text-zinc-200 prose-p:text-zinc-300 prose-strong:text-zinc-200 prose-code:text-emerald-400 prose-code:bg-zinc-800 prose-code:px-1 prose-code:py-0.5 prose-code:rounded prose-pre:bg-zinc-800 prose-pre:border prose-pre:border-zinc-700"
+                  dangerouslySetInnerHTML={{ __html: note.content }}
+                />
+              ) : (
+                <p className="text-zinc-400 text-center">Note not found</p>
+              )}
             </div>
           </div>
         </div>
