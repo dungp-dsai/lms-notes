@@ -1,5 +1,7 @@
+import logging
 import os
 import re
+import traceback
 import uuid
 from typing import Optional
 
@@ -10,6 +12,8 @@ from sqlalchemy.orm import selectinload
 
 from ..models import Note, Task, Tag
 from ..config import settings
+
+logger = logging.getLogger(__name__)
 
 
 class ContentEvaluatorResponse(BaseModel):
@@ -28,10 +32,12 @@ def extract_image_urls(content: str) -> list[str]:
 
 def _create_agent():
     """Create the content evaluator agent with proper settings."""
+    logger.debug("[REVISION] Creating content evaluator agent...")
     try:
         from langchain.agents import create_agent
         from langchain.messages import HumanMessage
         
+        logger.debug(f"[REVISION] Using model: {settings.openai_model}")
         agent = create_agent(
             model=settings.openai_model,
             system_prompt="""You are an expert content evaluator. Your task is to compare a note's current content 
@@ -46,8 +52,10 @@ Evaluate whether:
 If the note needs revision, explain specifically what aspects need attention.""",
             response_format=ContentEvaluatorResponse,
         )
+        logger.debug("[REVISION] Agent created successfully")
         return agent, HumanMessage
-    except ImportError:
+    except ImportError as e:
+        logger.error(f"[REVISION] Failed to create agent - ImportError: {e}")
         return None, None
 
 
@@ -78,17 +86,25 @@ async def evaluate_note_for_revision(
     Returns:
         tuple[bool, str]: (needs_revision, explanation)
     """
+    logger.info(f"[REVISION] Evaluating note: {note.title} (id: {note.id})")
+    
     if not note.original_text:
+        logger.info(f"[REVISION] Note has no original_text, skipping")
         return False, "No original content to compare"
     
     if note.content == note.original_text:
+        logger.info(f"[REVISION] Note content unchanged from original, skipping")
         return False, "Content unchanged from original"
+    
+    logger.debug(f"[REVISION] Note content length: {len(note.content or '')}, original length: {len(note.original_text or '')}")
     
     agent, HumanMessage = _create_agent()
     if agent is None:
+        logger.warning(f"[REVISION] Agent not available - langchain not installed")
         return False, "AI evaluation not available - langchain not installed"
     
     try:
+        logger.info(f"[REVISION] Invoking AI agent for evaluation...")
         message = _form_evaluation_message(note.content, note.original_text, HumanMessage)
         result = agent.invoke({"messages": [message]})
         
@@ -99,8 +115,14 @@ async def evaluate_note_for_revision(
         else:
             response_data = response_content
         
-        return response_data.get("needs_revision", False), response_data.get("explanation", "")
+        needs_revision = response_data.get("needs_revision", False)
+        explanation = response_data.get("explanation", "")
+        logger.info(f"[REVISION] Evaluation result: needs_revision={needs_revision}, explanation={explanation[:100]}...")
+        
+        return needs_revision, explanation
     except Exception as e:
+        logger.error(f"[REVISION] Evaluation error: {type(e).__name__}: {e}")
+        logger.error(f"[REVISION] Traceback:\n{traceback.format_exc()}")
         return False, f"Evaluation error: {str(e)}"
 
 
@@ -117,6 +139,9 @@ async def get_notes_for_revision(
     - They have original_text (something to compare against)
     - They haven't been revised yet (revision_count < 1)
     """
+    logger.info(f"[REVISION] Querying notes for tag_id: {tag_id}, limit: {limit}")
+    logger.debug(f"[REVISION] Query criteria: original_text != '', revision_count < 1")
+    
     result = await db.execute(
         select(Note)
         .join(Note.tags)
@@ -126,7 +151,16 @@ async def get_notes_for_revision(
         .order_by(Note.updated_at.asc())
         .limit(limit)
     )
-    return list(result.scalars().all())
+    notes = list(result.scalars().all())
+    
+    logger.info(f"[REVISION] Found {len(notes)} eligible notes for revision")
+    for note in notes:
+        logger.debug(f"[REVISION]   - Note: {note.title} (id: {note.id}, revision_count: {note.revision_count})")
+    
+    if len(notes) == 0:
+        logger.warning(f"[REVISION] No notes found for revision! Check if tag has notes with original_text and revision_count < 1")
+    
+    return notes
 
 
 async def create_revision_task(
@@ -136,6 +170,8 @@ async def create_revision_task(
     explanation: str,
 ) -> Task:
     """Create a revision task for a note."""
+    logger.info(f"[REVISION] Creating revision task for note: {note.title}")
+    
     task = Task(
         tag_id=tag_id,
         title=f"Revise: {note.title}",
@@ -148,9 +184,12 @@ async def create_revision_task(
     db.add(task)
     
     note.revision_count += 1
+    logger.debug(f"[REVISION] Incremented note revision_count to {note.revision_count}")
     
     await db.commit()
     await db.refresh(task)
+    
+    logger.info(f"[REVISION] Task created: {task.title} (id: {task.id})")
     return task
 
 
@@ -165,21 +204,44 @@ async def process_revision_tasks(
     Returns:
         list[Task]: List of created revision tasks
     """
+    logger.info(f"[REVISION] ========== PROCESS REVISION TASKS ==========")
+    logger.info(f"[REVISION] Tag ID: {tag_id}, Requested quantity: {quantity}")
+    
     notes = await get_notes_for_revision(db, tag_id, limit=quantity * 2)
     
+    if not notes:
+        logger.warning(f"[REVISION] No eligible notes found, returning empty list")
+        return []
+    
     created_tasks = []
+    evaluated_count = 0
+    needs_revision_count = 0
+    
     for note in notes:
         if len(created_tasks) >= quantity:
+            logger.info(f"[REVISION] Reached requested quantity ({quantity}), stopping")
             break
+        
+        evaluated_count += 1
+        logger.info(f"[REVISION] Processing note {evaluated_count}/{len(notes)}: {note.title}")
         
         needs_revision, explanation = await evaluate_note_for_revision(note)
         
         if needs_revision:
+            needs_revision_count += 1
             task = await create_revision_task(db, note, tag_id, explanation)
             created_tasks.append(task)
+            logger.info(f"[REVISION] Task created for note: {note.title}")
         else:
             note.revision_count += 1
             await db.commit()
+            logger.info(f"[REVISION] Note doesn't need revision, incremented revision_count")
+    
+    logger.info(f"[REVISION] ========== SUMMARY ==========")
+    logger.info(f"[REVISION] Notes evaluated: {evaluated_count}")
+    logger.info(f"[REVISION] Notes needing revision: {needs_revision_count}")
+    logger.info(f"[REVISION] Tasks created: {len(created_tasks)}")
+    logger.info(f"[REVISION] ================================")
     
     return created_tasks
 

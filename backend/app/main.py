@@ -1,6 +1,18 @@
 import os
 import sys
+import logging
 from contextlib import asynccontextmanager
+
+# Configure logging
+logging.basicConfig(
+    level=logging.INFO,
+    format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
+    datefmt="%Y-%m-%d %H:%M:%S",
+)
+logger = logging.getLogger(__name__)
+
+# Set scheduler service to INFO level for detailed logs
+logging.getLogger("app.services.scheduler_service").setLevel(logging.INFO)
 
 # Set up LangSmith env vars BEFORE any other imports
 # This must happen before langchain is imported anywhere
@@ -14,8 +26,7 @@ if settings.langsmith_api_key:
     os.environ["LANGSMITH_API_KEY"] = settings.langsmith_api_key
     os.environ["LANGSMITH_PROJECT"] = settings.langsmith_project
     os.environ["LANGSMITH_ENDPOINT"] = settings.langsmith_endpoint
-    sys.stderr.write(f"INFO:     LangSmith configured: project={settings.langsmith_project}, tracing={settings.langsmith_tracing}\n")
-    sys.stderr.flush()
+    logger.info(f"LangSmith configured: project={settings.langsmith_project}, tracing={settings.langsmith_tracing}")
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
@@ -27,10 +38,16 @@ from .services.scheduler_service import start_scheduler, stop_scheduler, sync_jo
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
+    logger.info("========== APPLICATION STARTUP ==========")
+    logger.info("Starting scheduler...")
     start_scheduler()
+    logger.info("Syncing jobs from settings...")
     await sync_jobs_from_settings()
+    logger.info("========== STARTUP COMPLETE ==========")
     yield
+    logger.info("========== APPLICATION SHUTDOWN ==========")
     stop_scheduler()
+    logger.info("========== SHUTDOWN COMPLETE ==========")
 
 
 app = FastAPI(title="LMS Notes API", lifespan=lifespan)

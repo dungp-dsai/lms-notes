@@ -3,7 +3,9 @@ Question generation service for coding and answering tasks.
 Uses LLM to generate questions based on note content (concepts).
 """
 import json
+import logging
 import re
+import traceback
 import uuid
 from typing import Optional
 
@@ -13,6 +15,8 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from ..models import Note, Task, Tag
 from ..config import settings
+
+logger = logging.getLogger(__name__)
 
 
 class CodingQuestionResponse(BaseModel):
@@ -59,10 +63,12 @@ def extract_text_content(html_content: str) -> str:
 
 def _create_coding_agent():
     """Create the coding question generator agent."""
+    logger.debug("[CODING] Creating coding question agent...")
     try:
         from langchain.agents import create_agent
         from langchain.messages import HumanMessage
         
+        logger.debug(f"[CODING] Using model: {settings.openai_model}")
         agent = create_agent(
             model=settings.openai_model,
             system_prompt="""You are an expert programming instructor. Your task is to create coding challenges 
@@ -102,17 +108,21 @@ For expected_answer:
 - IMPORTANT: Format the code properly with newlines and indentation (not all on one line)""",
             response_format=CodingQuestionResponse,
         )
+        logger.debug("[CODING] Agent created successfully")
         return agent, HumanMessage
-    except ImportError:
+    except ImportError as e:
+        logger.error(f"[CODING] Failed to create agent - ImportError: {e}")
         return None, None
 
 
 def _create_answering_agent():
     """Create the answering question generator agent."""
+    logger.debug("[ANSWERING] Creating answering question agent...")
     try:
         from langchain.agents import create_agent
         from langchain.messages import HumanMessage
         
+        logger.debug(f"[ANSWERING] Using model: {settings.openai_model}")
         agent = create_agent(
             model=settings.openai_model,
             system_prompt="""You are an expert educator specialized in testing deep understanding.
@@ -140,8 +150,10 @@ For expected_answer:
 - Note any common mistakes to avoid""",
             response_format=AnsweringQuestionResponse,
         )
+        logger.debug("[ANSWERING] Agent created successfully")
         return agent, HumanMessage
-    except ImportError:
+    except ImportError as e:
+        logger.error(f"[ANSWERING] Failed to create agent - ImportError: {e}")
         return None, None
 
 
@@ -153,18 +165,26 @@ async def generate_coding_question(note: Note) -> Optional[dict]:
         dict with keys: title, description, language, starter_code, test_code, expected_answer
         or None if generation fails
     """
+    logger.info(f"[CODING] Generating question for note: {note.title} (id: {note.id})")
+    
     agent, HumanMessage = _create_coding_agent()
     if agent is None:
+        logger.error("[CODING] Agent creation failed, returning None")
         return None
     
     text_content = extract_text_content(note.content)
     if not text_content:
+        logger.debug("[CODING] No content in note.content, trying original_text")
         text_content = extract_text_content(note.original_text)
     
     if not text_content:
+        logger.warning(f"[CODING] Note has no extractable text content, skipping")
         return None
     
+    logger.debug(f"[CODING] Extracted text content length: {len(text_content)} chars")
+    
     try:
+        logger.info("[CODING] Invoking AI agent for question generation...")
         message = HumanMessage(content=[
             {"type": "text", "text": f"Note Title: {note.title}\n\nNote Content:\n{text_content}"}
         ])
@@ -176,16 +196,22 @@ async def generate_coding_question(note: Note) -> Optional[dict]:
         else:
             response_data = response_content
         
-        return {
+        question_data = {
             "title": response_data.get("title", f"Coding: {note.title}"),
             "description": response_data.get("description", ""),
             "language": response_data.get("language", "python"),
-            "starter_code": "",  # Always empty - user writes from scratch
-            "test_code": "",  # Minimal tests - focus on expression
+            "starter_code": "",
+            "test_code": "",
             "expected_answer": response_data.get("expected_answer", ""),
         }
+        
+        logger.info(f"[CODING] Question generated: {question_data['title']}")
+        logger.debug(f"[CODING] Language: {question_data['language']}, description length: {len(question_data['description'])}")
+        
+        return question_data
     except Exception as e:
-        print(f"Error generating coding question: {e}")
+        logger.error(f"[CODING] Error generating question: {type(e).__name__}: {e}")
+        logger.error(f"[CODING] Traceback:\n{traceback.format_exc()}")
         return None
 
 
@@ -197,18 +223,26 @@ async def generate_answering_question(note: Note) -> Optional[dict]:
         dict with keys: title, description, expected_answer
         or None if generation fails
     """
+    logger.info(f"[ANSWERING] Generating question for note: {note.title} (id: {note.id})")
+    
     agent, HumanMessage = _create_answering_agent()
     if agent is None:
+        logger.error("[ANSWERING] Agent creation failed, returning None")
         return None
     
     text_content = extract_text_content(note.content)
     if not text_content:
+        logger.debug("[ANSWERING] No content in note.content, trying original_text")
         text_content = extract_text_content(note.original_text)
     
     if not text_content:
+        logger.warning(f"[ANSWERING] Note has no extractable text content, skipping")
         return None
     
+    logger.debug(f"[ANSWERING] Extracted text content length: {len(text_content)} chars")
+    
     try:
+        logger.info("[ANSWERING] Invoking AI agent for question generation...")
         message = HumanMessage(content=[
             {"type": "text", "text": f"Note Title: {note.title}\n\nNote Content:\n{text_content}"}
         ])
@@ -220,13 +254,19 @@ async def generate_answering_question(note: Note) -> Optional[dict]:
         else:
             response_data = response_content
         
-        return {
+        question_data = {
             "title": response_data.get("title", f"Question: {note.title}"),
             "description": response_data.get("description", ""),
             "expected_answer": response_data.get("expected_answer", ""),
         }
+        
+        logger.info(f"[ANSWERING] Question generated: {question_data['title'][:80]}...")
+        logger.debug(f"[ANSWERING] Description length: {len(question_data['description'])}")
+        
+        return question_data
     except Exception as e:
-        print(f"Error generating answering question: {e}")
+        logger.error(f"[ANSWERING] Error generating question: {type(e).__name__}: {e}")
+        logger.error(f"[ANSWERING] Traceback:\n{traceback.format_exc()}")
         return None
 
 
@@ -244,7 +284,10 @@ async def get_notes_for_tasks(
     - They have content
     - Prioritize notes with fewer tasks of this type
     """
+    logger.info(f"[TASKS] Querying notes for tag_id: {tag_id}, task_type: {task_type}, limit: {limit}")
+    
     count_field = f"{task_type}_count"
+    logger.debug(f"[TASKS] Query criteria: content != '', order by {count_field}")
     
     result = await db.execute(
         select(Note)
@@ -257,7 +300,17 @@ async def get_notes_for_tasks(
         )
         .limit(limit * 2)
     )
-    return list(result.scalars().all())
+    notes = list(result.scalars().all())
+    
+    logger.info(f"[TASKS] Found {len(notes)} eligible notes for {task_type} tasks")
+    for note in notes:
+        count_val = getattr(note, count_field, 'N/A')
+        logger.debug(f"[TASKS]   - Note: {note.title} (id: {note.id}, {count_field}: {count_val})")
+    
+    if len(notes) == 0:
+        logger.warning(f"[TASKS] No notes found! Check if tag has notes with content")
+    
+    return notes
 
 
 async def create_coding_task(
@@ -267,6 +320,8 @@ async def create_coding_task(
     question_data: dict,
 ) -> Task:
     """Create a coding task from generated question data."""
+    logger.info(f"[CODING] Creating task for note: {note.title}")
+    
     task = Task(
         tag_id=tag_id,
         title=question_data["title"],
@@ -282,9 +337,12 @@ async def create_coding_task(
     
     if hasattr(note, 'coding_count'):
         note.coding_count += 1
+        logger.debug(f"[CODING] Incremented note coding_count to {note.coding_count}")
     
     await db.commit()
     await db.refresh(task)
+    
+    logger.info(f"[CODING] Task saved: {task.title} (id: {task.id})")
     return task
 
 
@@ -295,6 +353,8 @@ async def create_answering_task(
     question_data: dict,
 ) -> Task:
     """Create an answering task from generated question data."""
+    logger.info(f"[ANSWERING] Creating task for note: {note.title}")
+    
     task = Task(
         tag_id=tag_id,
         title=question_data["title"],
@@ -307,9 +367,12 @@ async def create_answering_task(
     
     if hasattr(note, 'answering_count'):
         note.answering_count += 1
+        logger.debug(f"[ANSWERING] Incremented note answering_count to {note.answering_count}")
     
     await db.commit()
     await db.refresh(task)
+    
+    logger.info(f"[ANSWERING] Task saved: {task.title[:60]}... (id: {task.id})")
     return task
 
 
@@ -324,18 +387,42 @@ async def process_coding_tasks(
     Returns:
         list[Task]: List of created coding tasks
     """
+    logger.info(f"[CODING] ========== PROCESS CODING TASKS ==========")
+    logger.info(f"[CODING] Tag ID: {tag_id}, Requested quantity: {quantity}")
+    
     notes = await get_notes_for_tasks(db, tag_id, "coding", limit=quantity * 2)
     
+    if not notes:
+        logger.warning(f"[CODING] No eligible notes found, returning empty list")
+        return []
+    
     created_tasks = []
+    processed_count = 0
+    generation_failures = 0
+    
     for note in notes:
         if len(created_tasks) >= quantity:
+            logger.info(f"[CODING] Reached requested quantity ({quantity}), stopping")
             break
+        
+        processed_count += 1
+        logger.info(f"[CODING] Processing note {processed_count}/{len(notes)}: {note.title}")
         
         question_data = await generate_coding_question(note)
         
         if question_data:
             task = await create_coding_task(db, note, tag_id, question_data)
             created_tasks.append(task)
+            logger.info(f"[CODING] Task created: {task.title}")
+        else:
+            generation_failures += 1
+            logger.warning(f"[CODING] Failed to generate question for note: {note.title}")
+    
+    logger.info(f"[CODING] ========== SUMMARY ==========")
+    logger.info(f"[CODING] Notes processed: {processed_count}")
+    logger.info(f"[CODING] Generation failures: {generation_failures}")
+    logger.info(f"[CODING] Tasks created: {len(created_tasks)}")
+    logger.info(f"[CODING] ================================")
     
     return created_tasks
 
@@ -351,18 +438,42 @@ async def process_answering_tasks(
     Returns:
         list[Task]: List of created answering tasks
     """
+    logger.info(f"[ANSWERING] ========== PROCESS ANSWERING TASKS ==========")
+    logger.info(f"[ANSWERING] Tag ID: {tag_id}, Requested quantity: {quantity}")
+    
     notes = await get_notes_for_tasks(db, tag_id, "answering", limit=quantity * 2)
     
+    if not notes:
+        logger.warning(f"[ANSWERING] No eligible notes found, returning empty list")
+        return []
+    
     created_tasks = []
+    processed_count = 0
+    generation_failures = 0
+    
     for note in notes:
         if len(created_tasks) >= quantity:
+            logger.info(f"[ANSWERING] Reached requested quantity ({quantity}), stopping")
             break
+        
+        processed_count += 1
+        logger.info(f"[ANSWERING] Processing note {processed_count}/{len(notes)}: {note.title}")
         
         question_data = await generate_answering_question(note)
         
         if question_data:
             task = await create_answering_task(db, note, tag_id, question_data)
             created_tasks.append(task)
+            logger.info(f"[ANSWERING] Task created: {task.title[:60]}...")
+        else:
+            generation_failures += 1
+            logger.warning(f"[ANSWERING] Failed to generate question for note: {note.title}")
+    
+    logger.info(f"[ANSWERING] ========== SUMMARY ==========")
+    logger.info(f"[ANSWERING] Notes processed: {processed_count}")
+    logger.info(f"[ANSWERING] Generation failures: {generation_failures}")
+    logger.info(f"[ANSWERING] Tasks created: {len(created_tasks)}")
+    logger.info(f"[ANSWERING] ==================================")
     
     return created_tasks
 
@@ -383,11 +494,15 @@ async def evaluate_code_submission(
     Returns:
         dict with evaluation results
     """
+    logger.info(f"[EVAL:CODE] Evaluating submission for task: {task.title} (id: {task.id})")
+    logger.debug(f"[EVAL:CODE] User code length: {len(user_code)} chars")
+    
     try:
         from langchain_openai import ChatOpenAI
         from langchain_core.prompts import ChatPromptTemplate
         
         model_name = settings.openai_model.split(":", 1)[-1] if ":" in settings.openai_model else settings.openai_model
+        logger.debug(f"[EVAL:CODE] Using model: {model_name}")
         llm = ChatOpenAI(model=model_name, temperature=0)
         structured_llm = llm.with_structured_output(CodeEvaluationResponse)
         
@@ -451,6 +566,7 @@ Remember: The goal is to assess if they understand the concept, not if the code 
         
         chain = prompt | structured_llm
         
+        logger.info(f"[EVAL:CODE] Invoking LLM for evaluation...")
         response = chain.invoke({
             "note_title": note.title,
             "note_content": note_content,
@@ -461,18 +577,25 @@ Remember: The goal is to assess if they understand the concept, not if the code 
         })
         
         if hasattr(response, 'model_dump'):
-            return response.model_dump()
+            result = response.model_dump()
         elif isinstance(response, dict):
-            return response
+            result = response
         else:
-            return {
+            logger.warning(f"[EVAL:CODE] Unexpected response type: {type(response)}")
+            result = {
                 "is_correct": False,
                 "score": 0,
                 "feedback": str(response),
                 "concept_understanding": "Unable to parse",
                 "comment_quality": "Unable to parse",
             }
+        
+        logger.info(f"[EVAL:CODE] Evaluation complete: is_correct={result.get('is_correct')}")
+        logger.debug(f"[EVAL:CODE] Feedback: {result.get('feedback', '')[:200]}...")
+        return result
     except Exception as e:
+        logger.error(f"[EVAL:CODE] Evaluation error: {type(e).__name__}: {e}")
+        logger.error(f"[EVAL:CODE] Traceback:\n{traceback.format_exc()}")
         return {
             "is_correct": False,
             "feedback": f"Evaluation error: {str(e)}",
@@ -497,11 +620,15 @@ async def evaluate_answer_submission(
     Returns:
         dict with evaluation results
     """
+    logger.info(f"[EVAL:ANSWER] Evaluating submission for task: {task.title[:60]}... (id: {task.id})")
+    logger.debug(f"[EVAL:ANSWER] User answer length: {len(user_answer)} chars")
+    
     try:
         from langchain_openai import ChatOpenAI
         from langchain_core.prompts import ChatPromptTemplate
         
         model_name = settings.openai_model.split(":", 1)[-1] if ":" in settings.openai_model else settings.openai_model
+        logger.debug(f"[EVAL:ANSWER] Using model: {model_name}")
         llm = ChatOpenAI(model=model_name, temperature=0)
         structured_llm = llm.with_structured_output(AnswerEvaluationResponse)
         
@@ -557,6 +684,7 @@ Evaluate if the student understands the main concept. Remember: they don't need 
         
         chain = prompt | structured_llm
         
+        logger.info(f"[EVAL:ANSWER] Invoking LLM for evaluation...")
         response = chain.invoke({
             "note_title": note.title,
             "note_content": note_content,
@@ -567,15 +695,22 @@ Evaluate if the student understands the main concept. Remember: they don't need 
         })
         
         if hasattr(response, 'model_dump'):
-            return response.model_dump()
+            result = response.model_dump()
         elif isinstance(response, dict):
-            return response
+            result = response
         else:
-            return {
+            logger.warning(f"[EVAL:ANSWER] Unexpected response type: {type(response)}")
+            result = {
                 "is_correct": False,
                 "feedback": str(response),
             }
+        
+        logger.info(f"[EVAL:ANSWER] Evaluation complete: is_correct={result.get('is_correct')}")
+        logger.debug(f"[EVAL:ANSWER] Feedback: {result.get('feedback', '')[:200]}...")
+        return result
     except Exception as e:
+        logger.error(f"[EVAL:ANSWER] Evaluation error: {type(e).__name__}: {e}")
+        logger.error(f"[EVAL:ANSWER] Traceback:\n{traceback.format_exc()}")
         return {
             "is_correct": False,
             "feedback": f"Evaluation error: {str(e)}",
