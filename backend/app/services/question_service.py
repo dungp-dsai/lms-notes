@@ -12,6 +12,7 @@ from sqlalchemy import select, func
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from ..models import Note, Task, Tag
+from ..config import settings
 
 
 class CodingQuestionResponse(BaseModel):
@@ -63,7 +64,7 @@ def _create_coding_agent():
         from langchain.messages import HumanMessage
         
         agent = create_agent(
-            model="openai:gpt-4o-mini",
+            model=settings.openai_model,
             system_prompt="""You are an expert programming instructor. Your task is to create coding challenges 
 that encourage students to EXPRESS and DEMONSTRATE concepts they've learned by writing code from scratch.
 
@@ -113,7 +114,7 @@ def _create_answering_agent():
         from langchain.messages import HumanMessage
         
         agent = create_agent(
-            model="openai:gpt-4o-mini",
+            model=settings.openai_model,
             system_prompt="""You are an expert educator specialized in testing deep understanding.
 Your task is to create thought-provoking questions that test whether someone truly understands a concept.
 
@@ -386,7 +387,8 @@ async def evaluate_code_submission(
         from langchain_openai import ChatOpenAI
         from langchain_core.prompts import ChatPromptTemplate
         
-        llm = ChatOpenAI(model="gpt-4o-mini", temperature=0)
+        model_name = settings.openai_model.split(":", 1)[-1] if ":" in settings.openai_model else settings.openai_model
+        llm = ChatOpenAI(model=model_name, temperature=0)
         structured_llm = llm.with_structured_output(CodeEvaluationResponse)
         
         note_content = extract_text_content(note.content) if note.content else note.title
@@ -499,7 +501,8 @@ async def evaluate_answer_submission(
         from langchain_openai import ChatOpenAI
         from langchain_core.prompts import ChatPromptTemplate
         
-        llm = ChatOpenAI(model="gpt-4o-mini", temperature=0)
+        model_name = settings.openai_model.split(":", 1)[-1] if ":" in settings.openai_model else settings.openai_model
+        llm = ChatOpenAI(model=model_name, temperature=0)
         structured_llm = llm.with_structured_output(AnswerEvaluationResponse)
         
         note_content = extract_text_content(note.content) if note.content else note.title

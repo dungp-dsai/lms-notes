@@ -14,6 +14,7 @@ class Settings(BaseSettings):
     aws_bucket_name: str = ""
     google_api_key: str = ""
     openai_api_key: str = ""
+    openai_model: str = "openai:gpt-4o-mini"
     
     # LangSmith configuration for AI tracing
     langsmith_api_key: str = ""

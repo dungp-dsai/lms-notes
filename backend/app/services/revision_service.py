@@ -9,6 +9,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
 from ..models import Note, Task, Tag
+from ..config import settings
 
 
 class ContentEvaluatorResponse(BaseModel):
@@ -32,7 +33,7 @@ def _create_agent():
         from langchain.messages import HumanMessage
         
         agent = create_agent(
-            model="openai:gpt-4o-mini",
+            model=settings.openai_model,
             system_prompt="""You are an expert content evaluator. Your task is to compare a note's current content 
 with its original content to determine if the note has drifted from its original meaning or lost important information.
 
