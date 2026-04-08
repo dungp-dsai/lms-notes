@@ -21,6 +21,9 @@ class Settings(BaseSettings):
     langsmith_project: str = "lms-revisions"
     langsmith_endpoint: str = "https://api.smith.langchain.com"
     langsmith_tracing: bool = False
+    
+    # Timezone for scheduler (e.g., "Asia/Ho_Chi_Minh", "UTC", "America/New_York")
+    timezone: str = "Asia/Ho_Chi_Minh"
 
     model_config = {
         "env_prefix": "LMS_",

@@ -1,7 +1,8 @@
 import httpx
 import logging
 import traceback
-from datetime import datetime, timedelta, timezone
+from datetime import datetime, timedelta, timezone as tz
+from zoneinfo import ZoneInfo
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
 from apscheduler.triggers.cron import CronTrigger
 from apscheduler.events import EVENT_JOB_EXECUTED, EVENT_JOB_ERROR, EVENT_JOB_MISSED
@@ -14,7 +15,15 @@ from ..models import TagSettings, Tag, JobHistory
 
 logger = logging.getLogger(__name__)
 
-scheduler = AsyncIOScheduler()
+# Get timezone from settings
+try:
+    LOCAL_TZ = ZoneInfo(settings.timezone)
+    logger.info(f"[SCHEDULER] Using timezone: {settings.timezone}")
+except Exception as e:
+    logger.warning(f"[SCHEDULER] Invalid timezone '{settings.timezone}', falling back to UTC: {e}")
+    LOCAL_TZ = ZoneInfo("UTC")
+
+scheduler = AsyncIOScheduler(timezone=LOCAL_TZ)
 
 
 def job_listener(event):
@@ -388,7 +397,7 @@ async def sync_jobs_from_settings():
                         if task_type == "revising":
                             scheduler.add_job(
                                 process_revision_job,
-                                CronTrigger(hour=hour, minute=minute),
+                                CronTrigger(hour=hour, minute=minute, timezone=LOCAL_TZ),
                                 id=job_id,
                                 args=[str(tag.id), tag.name, quantity],
                                 replace_existing=True,
@@ -397,7 +406,7 @@ async def sync_jobs_from_settings():
                         elif task_type == "coding":
                             scheduler.add_job(
                                 process_coding_job,
-                                CronTrigger(hour=hour, minute=minute),
+                                CronTrigger(hour=hour, minute=minute, timezone=LOCAL_TZ),
                                 id=job_id,
                                 args=[str(tag.id), tag.name, quantity],
                                 replace_existing=True,
@@ -406,7 +415,7 @@ async def sync_jobs_from_settings():
                         elif task_type == "answering":
                             scheduler.add_job(
                                 process_answering_job,
-                                CronTrigger(hour=hour, minute=minute),
+                                CronTrigger(hour=hour, minute=minute, timezone=LOCAL_TZ),
                                 id=job_id,
                                 args=[str(tag.id), tag.name, quantity],
                                 replace_existing=True,
@@ -455,7 +464,7 @@ async def get_job_history(limit: int = 50) -> list[dict]:
 def get_scheduled_jobs() -> list[dict]:
     """Return list of scheduled jobs with next run times."""
     jobs = []
-    now = datetime.now(timezone.utc)
+    now = datetime.now(LOCAL_TZ)
     
     all_jobs = scheduler.get_jobs()
     logger.debug(f"[JOBS] Getting scheduled jobs: {len(all_jobs)} total in scheduler")
@@ -463,9 +472,10 @@ def get_scheduled_jobs() -> list[dict]:
     for job in all_jobs:
         next_run = job.next_run_time
         if next_run:
-            if next_run.tzinfo is None:
-                next_run = next_run.replace(tzinfo=timezone.utc)
-            delta = next_run - now
+            # Convert to local timezone for display
+            next_run_local = next_run.astimezone(LOCAL_TZ)
+            delta = next_run_local - now
+            
             if delta.total_seconds() < 60:
                 next_run_str = "in less than a minute"
             elif delta.total_seconds() < 3600:
@@ -475,12 +485,12 @@ def get_scheduled_jobs() -> list[dict]:
                 hours = int(delta.total_seconds() / 3600)
                 next_run_str = f"in {hours} hour{'s' if hours != 1 else ''}"
             else:
-                next_run_str = next_run.strftime("%Y-%m-%d %H:%M")
+                next_run_str = next_run_local.strftime("%Y-%m-%d %H:%M")
 
             jobs.append({
                 "id": job.id,
                 "name": job.name or job.id,
-                "next_run_time": next_run.isoformat(),
+                "next_run_time": next_run_local.isoformat(),
                 "next_run_relative": next_run_str,
             })
         else:
@@ -494,7 +504,7 @@ def get_scheduled_jobs() -> list[dict]:
 def start_scheduler():
     """Start the scheduler if not already running."""
     if not scheduler.running:
-        logger.info(f"[SCHEDULER] Starting APScheduler...")
+        logger.info(f"[SCHEDULER] Starting APScheduler with timezone: {settings.timezone}")
         scheduler.start()
         logger.info(f"[SCHEDULER] APScheduler started successfully")
     else:
