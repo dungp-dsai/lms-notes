@@ -72,4 +72,5 @@ app.mount("/uploads", StaticFiles(directory=str(settings.upload_dir)), name="upl
 
 @app.get("/api/health")
 async def health():
+    logger.info("[HEALTH] Keep-alive ping received")
     return {"status": "ok"}

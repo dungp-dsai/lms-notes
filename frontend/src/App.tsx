@@ -1,3 +1,4 @@
+import { useEffect } from "react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { HomePage } from "@/pages/HomePage";
@@ -14,7 +15,25 @@ const queryClient = new QueryClient({
   },
 });
 
+const API_URL = import.meta.env.VITE_API_URL || "";
+const KEEP_ALIVE_INTERVAL = 10 * 60 * 1000; // 10 minutes
+
+function useKeepAlive() {
+  useEffect(() => {
+    const pingBackend = () => {
+      fetch(`${API_URL}/api/health`).catch(() => {});
+    };
+
+    pingBackend();
+    const interval = setInterval(pingBackend, KEEP_ALIVE_INTERVAL);
+
+    return () => clearInterval(interval);
+  }, []);
+}
+
 function App() {
+  useKeepAlive();
+
   return (
     <QueryClientProvider client={queryClient}>
       <BrowserRouter>
