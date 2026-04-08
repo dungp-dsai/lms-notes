@@ -137,7 +137,7 @@ export function HomePage() {
               <p className="text-sm mt-1">Create tags from the notes page</p>
             </div>
           ) : (
-            <div className="space-y-2">
+            <div className="space-y-2 overflow-hidden">
               {tagStats.map((tag) => (
                 <TagRow
                   key={tag.id}
@@ -223,7 +223,7 @@ function TagRow({ tag, isExpanded, onToggle, onNavigateNotes }: TagRowProps) {
     tag.tasks.skipped > 0;
 
   return (
-    <div className="rounded-lg border border-border bg-card overflow-hidden">
+    <div className="rounded-lg border border-border bg-card overflow-hidden max-w-full">
       <div
         className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4 p-3 sm:p-4 hover:bg-accent/50 transition-colors cursor-pointer"
         onClick={hasTasks ? onToggle : onNavigateNotes}
@@ -309,7 +309,8 @@ function TagRow({ tag, isExpanded, onToggle, onNavigateNotes }: TagRowProps) {
                   onClick={() => navigate(`/task/${task.id}`)}
                   className={cn(
                     "w-full flex items-center gap-2 sm:gap-3 p-2 sm:p-2.5 rounded-md hover:bg-accent transition-colors cursor-pointer text-left",
-                    "border border-transparent hover:border-border"
+                    "border border-transparent hover:border-border",
+                    "min-w-0 overflow-hidden"
                   )}
                 >
                   {task.task_type === "coding" ? (
@@ -319,9 +320,9 @@ function TagRow({ tag, isExpanded, onToggle, onNavigateNotes }: TagRowProps) {
                   ) : (
                     <MessageSquare className="h-4 w-4 text-purple-500 shrink-0" />
                   )}
-                  <span className="flex-1 text-xs sm:text-sm truncate">{task.title}</span>
+                  <span className="flex-1 text-xs sm:text-sm truncate min-w-0">{task.title}</span>
                   <span className={cn(
-                    "text-xs px-1.5 sm:px-2 py-0.5 rounded hidden sm:inline",
+                    "text-xs px-1.5 sm:px-2 py-0.5 rounded shrink-0",
                     task.task_type === "revising" 
                       ? "bg-amber-500/10 text-amber-600 dark:text-amber-400" 
                       : "bg-muted text-muted-foreground"
