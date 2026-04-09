@@ -8,7 +8,7 @@ import Underline from "@tiptap/extension-underline";
 import TaskList from "@tiptap/extension-task-list";
 import TaskItem from "@tiptap/extension-task-item";
 import Mention from "@tiptap/extension-mention";
-import { Plus, X, FileText, AlertCircle, CheckCircle2, Trash2 } from "lucide-react";
+import { Plus, X, FileText, AlertCircle, CheckCircle2, Trash2, Save } from "lucide-react";
 import { useNote, useUpdateNote, useBacklinks, useTags, useSubmitRevision, useDeleteNote, useNoteList } from "@/hooks/useNotes";
 import { OriginalTextModal } from "@/components/OriginalTextModal";
 import { Toolbar } from "./Toolbar";
@@ -46,7 +46,7 @@ export function NoteEditor({ noteId, revisionTask, onRevisionComplete }: NoteEdi
   const [showRevisionBanner, setShowRevisionBanner] = useState(!!revisionTask);
   const [revisionCompleted, setRevisionCompleted] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
-  const saveTimer = useRef<ReturnType<typeof setTimeout>>(null);
+  const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
   const skipNextUpdate = useRef(false);
   const tagPickerRef = useRef<HTMLDivElement>(null);
 
@@ -89,16 +89,6 @@ export function NoteEditor({ noteId, revisionTask, onRevisionComplete }: NoteEdi
   const noteTags = note?.tags || [];
   const noteTagIds = noteTags.map((t) => t.id);
   const availableTags = allTags.filter((t) => !noteTagIds.includes(t.id));
-
-  const debouncedSave = useCallback(
-    (fields: { title?: string; content?: string }) => {
-      if (saveTimer.current) clearTimeout(saveTimer.current);
-      saveTimer.current = setTimeout(() => {
-        updateNote.mutate({ id: noteId, ...fields });
-      }, 500);
-    },
-    [noteId, updateNote]
-  );
 
   const handleAddTag = (tagId: string) => {
     const newTagIds = [...noteTagIds, tagId];
@@ -171,12 +161,12 @@ export function NoteEditor({ noteId, revisionTask, onRevisionComplete }: NoteEdi
         renderText: ({ node }) => `[[${node.attrs.label ?? node.attrs.id}]]`,
       }),
     ],
-    onUpdate: ({ editor: ed }) => {
+    onUpdate: () => {
       if (skipNextUpdate.current) {
         skipNextUpdate.current = false;
         return;
       }
-      debouncedSave({ content: ed.getHTML() });
+      setHasUnsavedChanges(true);
     },
     editorProps: {
       attributes: {
@@ -184,6 +174,14 @@ export function NoteEditor({ noteId, revisionTask, onRevisionComplete }: NoteEdi
       },
     },
   });
+
+  const handleSave = useCallback(() => {
+    if (!editor) return;
+    updateNote.mutate(
+      { id: noteId, title, content: editor.getHTML() },
+      { onSuccess: () => setHasUnsavedChanges(false) }
+    );
+  }, [noteId, title, editor, updateNote]);
 
   useEffect(() => {
     if (note && editor) {
@@ -209,10 +207,24 @@ export function NoteEditor({ noteId, revisionTask, onRevisionComplete }: NoteEdi
     return () => window.removeEventListener("navigate-note", handler);
   }, []);
 
+  // Ctrl+S / Cmd+S to save
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if ((e.ctrlKey || e.metaKey) && e.key === "s") {
+        e.preventDefault();
+        if (hasUnsavedChanges && !updateNote.isPending) {
+          handleSave();
+        }
+      }
+    };
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [hasUnsavedChanges, updateNote.isPending, handleSave]);
+
   const handleTitleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const newTitle = e.target.value;
     setTitle(newTitle);
-    debouncedSave({ title: newTitle });
+    setHasUnsavedChanges(true);
   };
 
   if (isLoading) {
@@ -233,7 +245,25 @@ export function NoteEditor({ noteId, revisionTask, onRevisionComplete }: NoteEdi
 
   return (
     <div className="flex h-full flex-col">
-      {editor && <Toolbar editor={editor} />}
+      <div className="flex items-center justify-between border-b border-border">
+        {editor && <Toolbar editor={editor} />}
+        <div className="px-2 sm:px-4 py-1">
+          <Button
+            size="sm"
+            onClick={handleSave}
+            disabled={!hasUnsavedChanges || updateNote.isPending}
+            className={cn(
+              "h-7 sm:h-8 text-xs sm:text-sm gap-1.5",
+              hasUnsavedChanges 
+                ? "bg-green-600 hover:bg-green-700" 
+                : "bg-muted text-muted-foreground"
+            )}
+          >
+            <Save className="h-3.5 w-3.5" />
+            {updateNote.isPending ? "Saving..." : hasUnsavedChanges ? "Save" : "Saved"}
+          </Button>
+        </div>
+      </div>
       
       {showRevisionBanner && revisionTask && (
         <div className={cn(
