@@ -138,9 +138,23 @@ async def get_notes_for_revision(
     - They belong to the specified tag
     - They have original_text (something to compare against)
     - They haven't been revised yet (revision_count < 1)
+    - They do NOT have a pending revision task
     """
     logger.info(f"[REVISION] Querying notes for tag_id: {tag_id}, limit: {limit}")
-    logger.debug(f"[REVISION] Query criteria: original_text != '', revision_count < 1")
+    logger.debug(f"[REVISION] Query criteria: original_text != '', revision_count < 1, no pending revision task")
+    
+    # Subquery to find note_ids that have pending revision tasks
+    from sqlalchemy import exists, and_
+    pending_task_subquery = (
+        select(Task.note_id)
+        .where(
+            and_(
+                Task.note_id == Note.id,
+                Task.task_type == "revising",
+                Task.status == "pending"
+            )
+        )
+    )
     
     result = await db.execute(
         select(Note)
@@ -148,17 +162,18 @@ async def get_notes_for_revision(
         .where(Tag.id == tag_id)
         .where(Note.original_text != "")
         .where(Note.revision_count < 1)
+        .where(~exists(pending_task_subquery))  # Exclude notes with pending revision tasks
         .order_by(Note.updated_at.asc())
         .limit(limit)
     )
     notes = list(result.scalars().all())
     
-    logger.info(f"[REVISION] Found {len(notes)} eligible notes for revision")
+    logger.info(f"[REVISION] Found {len(notes)} eligible notes for revision (excluding notes with pending tasks)")
     for note in notes:
         logger.debug(f"[REVISION]   - Note: {note.title} (id: {note.id}, revision_count: {note.revision_count})")
     
     if len(notes) == 0:
-        logger.warning(f"[REVISION] No notes found for revision! Check if tag has notes with original_text and revision_count < 1")
+        logger.warning(f"[REVISION] No notes found for revision! Either tag has no eligible notes, or all notes already have pending revision tasks")
     
     return notes
 

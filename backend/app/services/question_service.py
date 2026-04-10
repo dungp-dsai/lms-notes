@@ -282,18 +282,33 @@ async def get_notes_for_tasks(
     Notes are selected based on:
     - They belong to the specified tag
     - They have content
+    - They do NOT have a pending task of the same type
     - Prioritize notes with fewer tasks of this type
     """
     logger.info(f"[TASKS] Querying notes for tag_id: {tag_id}, task_type: {task_type}, limit: {limit}")
     
     count_field = f"{task_type}_count"
-    logger.debug(f"[TASKS] Query criteria: content != '', order by {count_field}")
+    logger.debug(f"[TASKS] Query criteria: content != '', no pending {task_type} task, order by {count_field}")
+    
+    # Subquery to find note_ids that have pending tasks of this type
+    from sqlalchemy import exists, and_
+    pending_task_subquery = (
+        select(Task.note_id)
+        .where(
+            and_(
+                Task.note_id == Note.id,
+                Task.task_type == task_type,
+                Task.status == "pending"
+            )
+        )
+    )
     
     result = await db.execute(
         select(Note)
         .join(Note.tags)
         .where(Tag.id == tag_id)
         .where(Note.content != "")
+        .where(~exists(pending_task_subquery))  # Exclude notes with pending tasks
         .order_by(
             getattr(Note, count_field, Note.updated_at).asc(),
             Note.updated_at.asc()
@@ -302,13 +317,13 @@ async def get_notes_for_tasks(
     )
     notes = list(result.scalars().all())
     
-    logger.info(f"[TASKS] Found {len(notes)} eligible notes for {task_type} tasks")
+    logger.info(f"[TASKS] Found {len(notes)} eligible notes for {task_type} tasks (excluding notes with pending tasks)")
     for note in notes:
         count_val = getattr(note, count_field, 'N/A')
         logger.debug(f"[TASKS]   - Note: {note.title} (id: {note.id}, {count_field}: {count_val})")
     
     if len(notes) == 0:
-        logger.warning(f"[TASKS] No notes found! Check if tag has notes with content")
+        logger.warning(f"[TASKS] No notes found! Either tag has no notes with content, or all notes already have pending {task_type} tasks")
     
     return notes
 
