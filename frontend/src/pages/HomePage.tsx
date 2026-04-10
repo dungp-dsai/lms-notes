@@ -31,7 +31,7 @@ import { SettingsModal } from "@/components/SettingsModal";
 import { showToast } from "@/components/ui/toast";
 
 const FOCUS_MODE_KEY = "lms_focus_mode";
-const FOCUS_MODE_LIMIT = 2; // Lower limit for testing (normally 5)
+const FOCUS_MODE_LIMIT = 5;
 
 const TAG_COLORS = [
   "#8b5cf6",
