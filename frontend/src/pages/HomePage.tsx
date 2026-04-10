@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useMemo, useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import {
   Plus,
@@ -15,6 +15,8 @@ import {
   Settings,
   History,
   SkipForward,
+  Shield,
+  Info,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
@@ -26,6 +28,10 @@ import {
 } from "@/hooks/useNotes";
 import { cn } from "@/lib/utils";
 import { SettingsModal } from "@/components/SettingsModal";
+import { showToast } from "@/components/ui/toast";
+
+const FOCUS_MODE_KEY = "lms_focus_mode";
+const FOCUS_MODE_LIMIT = 2; // Lower limit for testing (normally 5)
 
 const TAG_COLORS = [
   "#8b5cf6",
@@ -46,6 +52,17 @@ export function HomePage() {
   const createNote = useCreateNote();
   const [expandedTag, setExpandedTag] = useState<string | null>(null);
   const [showSettings, setShowSettings] = useState(false);
+  const [focusMode, setFocusMode] = useState(() => {
+    return localStorage.getItem(FOCUS_MODE_KEY) === "true";
+  });
+  const [showFocusInfo, setShowFocusInfo] = useState(false);
+
+  // Persist focus mode to localStorage
+  useEffect(() => {
+    localStorage.setItem(FOCUS_MODE_KEY, focusMode.toString());
+    // Broadcast to other components
+    window.dispatchEvent(new CustomEvent("focus-mode-changed", { detail: { enabled: focusMode } }));
+  }, [focusMode]);
 
   const taskStatsMap = useMemo(() => {
     const map = new Map<
@@ -89,9 +106,30 @@ export function HomePage() {
     return notes.filter((note) => note.tags.length === 0).length;
   }, [notes]);
 
+  // Check if any tag exceeds the pending task limit
+  const tagsOverLimit = useMemo(() => {
+    if (!focusMode) return [];
+    return tagStats.filter((tag) => tag.tasks.pending >= FOCUS_MODE_LIMIT);
+  }, [focusMode, tagStats]);
+
   const handleCreateNote = async () => {
-    const note = await createNote.mutateAsync({ title: "Untitled" });
-    navigate(`/notes/${note.id}`);
+    // If focus mode is on and ALL tags are over the limit, block creation
+    if (focusMode && tagsOverLimit.length === tagStats.length && tagStats.length > 0) {
+      showToast(
+        `Focus Mode: Complete pending tasks first. All tags have ${FOCUS_MODE_LIMIT}+ pending tasks.`,
+        "error"
+      );
+      return;
+    }
+    
+    try {
+      const note = await createNote.mutateAsync({ title: "Untitled" });
+      navigate(`/notes/${note.id}`);
+    } catch (error) {
+      if (error instanceof Error) {
+        showToast(error.message, "error");
+      }
+    }
   };
 
   const toggleExpand = (tagId: string) => {
@@ -109,6 +147,44 @@ export function HomePage() {
             </p>
           </div>
           <div className="flex items-center gap-2">
+            {/* Focus Mode Toggle */}
+            <div className="relative flex items-center">
+              <button
+                onClick={() => setFocusMode(!focusMode)}
+                className={cn(
+                  "flex items-center gap-1.5 px-2.5 py-1.5 rounded-md border transition-colors",
+                  focusMode
+                    ? "bg-amber-500/20 border-amber-500/50 text-amber-400"
+                    : "border-border text-muted-foreground hover:text-foreground hover:border-foreground/30"
+                )}
+                title="Focus Mode"
+              >
+                <Shield className="h-4 w-4" />
+                <span className="text-xs font-medium hidden sm:inline">Focus</span>
+              </button>
+              <button
+                onClick={() => setShowFocusInfo(!showFocusInfo)}
+                className="p-1 text-muted-foreground hover:text-foreground"
+                title="What is Focus Mode?"
+              >
+                <Info className="h-3.5 w-3.5" />
+              </button>
+              {showFocusInfo && (
+                <div className="absolute top-full right-0 mt-2 w-64 p-3 bg-popover border border-border rounded-lg shadow-lg z-50 text-sm">
+                  <p className="font-medium mb-1">Focus Mode</p>
+                  <p className="text-muted-foreground text-xs">
+                    When enabled, you cannot add notes to a tag that has {FOCUS_MODE_LIMIT}+ pending tasks. 
+                    Complete your existing tasks first to stay focused!
+                  </p>
+                  <button
+                    onClick={() => setShowFocusInfo(false)}
+                    className="mt-2 text-xs text-primary hover:underline"
+                  >
+                    Got it
+                  </button>
+                </div>
+              )}
+            </div>
             <Button
               variant="outline"
               size="icon"
@@ -145,6 +221,8 @@ export function HomePage() {
                   isExpanded={expandedTag === tag.id}
                   onToggle={() => toggleExpand(tag.id)}
                   onNavigateNotes={() => navigate(`/notes?tag=${tag.id}`)}
+                  focusMode={focusMode}
+                  isOverLimit={focusMode && tag.tasks.pending >= FOCUS_MODE_LIMIT}
                 />
               ))}
 
@@ -208,9 +286,11 @@ interface TagRowProps {
   isExpanded: boolean;
   onToggle: () => void;
   onNavigateNotes: () => void;
+  focusMode?: boolean;
+  isOverLimit?: boolean;
 }
 
-function TagRow({ tag, isExpanded, onToggle, onNavigateNotes }: TagRowProps) {
+function TagRow({ tag, isExpanded, onToggle, onNavigateNotes, isOverLimit }: TagRowProps) {
   const navigate = useNavigate();
   const { data: pendingTasks = [] } = useTasks(
     isExpanded ? tag.id : undefined,
@@ -251,9 +331,16 @@ function TagRow({ tag, isExpanded, onToggle, onNavigateNotes }: TagRowProps) {
           {(tag.tasks.pending > 0 || tag.tasks.completed > 0 || tag.tasks.skipped > 0) && (
             <div className="flex items-center gap-2 sm:gap-3 text-sm">
               {tag.tasks.pending > 0 && (
-                <div className="flex items-center gap-1 text-amber-500">
+                <div className={cn(
+                  "flex items-center gap-1",
+                  isOverLimit ? "text-red-500" : "text-amber-500"
+                )}>
+                  {isOverLimit && <Shield className="h-3.5 w-3.5" />}
                   <Clock className="h-3.5 w-3.5" />
                   <span className="font-mono text-xs">{tag.tasks.pending}</span>
+                  {isOverLimit && (
+                    <span className="text-[10px] font-medium ml-0.5">LIMIT</span>
+                  )}
                 </div>
               )}
               {tag.tasks.correct > 0 && (

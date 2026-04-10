@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Plus, Search, FileText, Trash2, Tag, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -10,8 +10,13 @@ import {
   useTags,
   useCreateTag,
   useDeleteTag,
+  useTaskStats,
 } from "@/hooks/useNotes";
+import { showToast } from "@/components/ui/toast";
 import { cn } from "@/lib/utils";
+
+const FOCUS_MODE_KEY = "lms_focus_mode";
+const FOCUS_MODE_LIMIT = 5;
 
 interface SidebarProps {
   activeNoteId: string | null;
@@ -39,10 +44,26 @@ export function Sidebar({
   const { data: notes = [], isLoading } = useNoteList(selectedTagId, showUntagged);
   const { data: allNotes = [] } = useNoteList(); // For duplicate checking
   const { data: tags = [] } = useTags();
+  const { data: taskStats = [] } = useTaskStats();
   const createNote = useCreateNote();
   const deleteNote = useDeleteNote();
   const createTag = useCreateTag();
   const deleteTag = useDeleteTag();
+  
+  // Focus mode state
+  const [focusMode, setFocusMode] = useState(() => {
+    return localStorage.getItem(FOCUS_MODE_KEY) === "true";
+  });
+
+  // Listen for focus mode changes from HomePage
+  useEffect(() => {
+    const handler = (e: Event) => {
+      const detail = (e as CustomEvent).detail;
+      setFocusMode(detail.enabled);
+    };
+    window.addEventListener("focus-mode-changed", handler);
+    return () => window.removeEventListener("focus-mode-changed", handler);
+  }, []);
 
   const filtered = search
     ? notes.filter((n) => n.title.toLowerCase().includes(search.toLowerCase()))
@@ -50,6 +71,20 @@ export function Sidebar({
 
   const handleCreate = async () => {
     const tagIds = selectedTagId ? [selectedTagId] : [];
+    
+    // Check focus mode limit for the selected tag
+    if (focusMode && selectedTagId) {
+      const tagStat = taskStats.find((s) => s.tag_id === selectedTagId);
+      if (tagStat && tagStat.pending >= FOCUS_MODE_LIMIT) {
+        const tag = tags.find((t) => t.id === selectedTagId);
+        showToast(
+          `Focus Mode: "${tag?.name || 'This tag'}" has ${tagStat.pending} pending tasks. Complete some first!`,
+          "error"
+        );
+        return;
+      }
+    }
+    
     // Generate unique title
     let title = "Untitled";
     let counter = 1;
@@ -58,8 +93,15 @@ export function Sidebar({
       title = `Untitled ${counter}`;
       counter++;
     }
-    const note = await createNote.mutateAsync({ title, tag_ids: tagIds });
-    onSelectNote(note.id, note.title);
+    
+    try {
+      const note = await createNote.mutateAsync({ title, tag_ids: tagIds });
+      onSelectNote(note.id, note.title);
+    } catch (error) {
+      if (error instanceof Error) {
+        showToast(error.message, "error");
+      }
+    }
   };
 
   const handleDeleteClick = (e: React.MouseEvent, id: string) => {
