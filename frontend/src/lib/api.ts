@@ -126,7 +126,17 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
     },
   });
   if (!res.ok) {
-    throw new Error(`API error: ${res.status}`);
+    // Try to get error message from response body
+    let errorMessage = `API error: ${res.status}`;
+    try {
+      const errorData = await res.json();
+      if (errorData.detail) {
+        errorMessage = errorData.detail;
+      }
+    } catch {
+      // Ignore JSON parse errors
+    }
+    throw new Error(errorMessage);
   }
   if (res.status === 204) return undefined as T;
   return res.json();

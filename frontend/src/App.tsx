@@ -5,6 +5,7 @@ import { HomePage } from "@/pages/HomePage";
 import { NotesPage } from "@/pages/NotesPage";
 import { TaskPage } from "@/pages/TaskPage";
 import { TaskHistoryPage } from "@/pages/TaskHistoryPage";
+import { ToastContainer } from "@/components/ui/toast";
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -45,6 +46,7 @@ function App() {
           <Route path="/tasks/history" element={<TaskHistoryPage />} />
         </Routes>
       </BrowserRouter>
+      <ToastContainer />
     </QueryClientProvider>
   );
 }

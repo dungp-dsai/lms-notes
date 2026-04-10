@@ -3,8 +3,10 @@ import { useNavigate, useParams, useSearchParams } from "react-router-dom";
 import { Home, Menu, X, PanelLeftClose, PanelLeft } from "lucide-react";
 import { Sidebar } from "@/components/layout/Sidebar";
 import { NoteEditor } from "@/components/editor/NoteEditor";
+import { TabBar, type Tab } from "@/components/TabBar";
 import { Button } from "@/components/ui/button";
-import { useTask, useNoteList } from "@/hooks/useNotes";
+import { useTask, useNoteList, useCreateNote } from "@/hooks/useNotes";
+import { showToast } from "@/components/ui/toast";
 import { cn } from "@/lib/utils";
 
 const MIN_SIDEBAR_WIDTH = 200;
@@ -26,22 +28,49 @@ export function NotesPage() {
   const [isResizing, setIsResizing] = useState(false);
   const [isMobileSidebarOpen, setIsMobileSidebarOpen] = useState(false);
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
+  const [openTabs, setOpenTabs] = useState<Tab[]>([]);
   const sidebarRef = useRef<HTMLDivElement>(null);
 
   const revisionTaskId = searchParams.get("revision");
   const { data: revisionTask } = useTask(revisionTaskId);
 
-  // Fetch notes to auto-select first one
+  // Fetch filtered notes for sidebar and auto-select
   const { data: notes = [] } = useNoteList(selectedTagId || undefined, showUntagged);
+  // Fetch all notes for tab validation (tabs can have notes from any tag)
+  const { data: allNotes = [] } = useNoteList();
+  const createNote = useCreateNote();
 
   // Auto-select first note when no note is selected
   useEffect(() => {
     if (!activeNoteId && notes.length > 0) {
       const firstNote = notes[0];
       setActiveNoteId(firstNote.id);
+      // Add to tabs if not already there
+      setOpenTabs((prev) => {
+        if (prev.some((t) => t.id === firstNote.id)) return prev;
+        return [...prev, { id: firstNote.id, title: firstNote.title }];
+      });
       navigate(`/notes/${firstNote.id}`, { replace: true });
     }
   }, [activeNoteId, notes, navigate]);
+
+  // Update tab titles and cleanup deleted notes' tabs
+  useEffect(() => {
+    if (allNotes.length === 0) return;
+    
+    const noteIds = new Set(allNotes.map((n) => n.id));
+    
+    setOpenTabs((prev) => {
+      // Filter out tabs for deleted notes
+      const validTabs = prev.filter((t) => noteIds.has(t.id));
+      
+      // Update titles for existing tabs
+      return validTabs.map((t) => {
+        const note = allNotes.find((n) => n.id === t.id);
+        return note ? { ...t, title: note.title } : t;
+      });
+    });
+  }, [allNotes]);
 
   const handleMouseDown = useCallback((e: React.MouseEvent) => {
     e.preventDefault();
@@ -73,25 +102,113 @@ export function NotesPage() {
   useEffect(() => {
     if (noteId) {
       setActiveNoteId(noteId);
+      // Add to tabs if not already there
+      const noteTitle = allNotes.find((n) => n.id === noteId)?.title || "Untitled";
+      setOpenTabs((prev) => {
+        if (prev.some((t) => t.id === noteId)) return prev;
+        return [...prev, { id: noteId, title: noteTitle }];
+      });
     }
-  }, [noteId]);
+  }, [noteId, allNotes]);
 
   useEffect(() => {
     const handler = (e: Event) => {
       const detail = (e as CustomEvent).detail;
       if (detail?.noteId) {
-        setActiveNoteId(detail.noteId);
-        navigate(`/notes/${detail.noteId}`, { replace: true });
+        handleSelectNote(detail.noteId, detail.title);
       }
     };
     window.addEventListener("select-note", handler);
     return () => window.removeEventListener("select-note", handler);
-  }, [navigate]);
+  }, [allNotes]);
 
-  const handleSelectNote = (id: string) => {
+  // Handle creating new note from wiki-link click
+  useEffect(() => {
+    const handler = async (e: Event) => {
+      const detail = (e as CustomEvent).detail;
+      if (detail?.title) {
+        // Check if note exists locally first (fast path)
+        const existingNote = allNotes.find(
+          (n) => n.title.toLowerCase() === detail.title.toLowerCase()
+        );
+        
+        if (existingNote) {
+          handleSelectNote(existingNote.id, existingNote.title);
+          return;
+        }
+        
+        // Auto-save current note before creating new one
+        if (activeNoteId) {
+          window.dispatchEvent(
+            new CustomEvent("save-current-note", { detail: { noteId: activeNoteId } })
+          );
+        }
+        
+        try {
+          const newNote = await createNote.mutateAsync({ title: detail.title });
+          handleSelectNote(newNote.id, newNote.title);
+        } catch (error) {
+          // Backend returns 409 if note already exists
+          if (error instanceof Error) {
+            showToast(error.message, "error");
+          }
+        }
+      }
+    };
+    window.addEventListener("create-note-from-link", handler);
+    return () => window.removeEventListener("create-note-from-link", handler);
+  }, [activeNoteId, createNote, allNotes]);
+
+  const handleSelectNote = (id: string, title?: string) => {
+    // Auto-save current note before switching
+    if (activeNoteId && activeNoteId !== id) {
+      window.dispatchEvent(
+        new CustomEvent("save-current-note", { detail: { noteId: activeNoteId } })
+      );
+    }
     setActiveNoteId(id);
     setIsMobileSidebarOpen(false);
+    // Add to tabs if not already there
+    setOpenTabs((prev) => {
+      if (prev.some((t) => t.id === id)) return prev;
+      const noteTitle = title || allNotes.find((n) => n.id === id)?.title || "Untitled";
+      return [...prev, { id, title: noteTitle }];
+    });
     navigate(`/notes/${id}`, { replace: true });
+  };
+
+  const handleSelectTab = (id: string) => {
+    // Auto-save current note before switching tabs
+    if (activeNoteId && activeNoteId !== id) {
+      window.dispatchEvent(
+        new CustomEvent("save-current-note", { detail: { noteId: activeNoteId } })
+      );
+    }
+    setActiveNoteId(id);
+    navigate(`/notes/${id}`, { replace: true });
+  };
+
+  const handleCloseTab = (id: string) => {
+    // Auto-save before closing the tab
+    window.dispatchEvent(
+      new CustomEvent("save-current-note", { detail: { noteId: id } })
+    );
+    
+    setOpenTabs((prev) => {
+      const newTabs = prev.filter((t) => t.id !== id);
+      // If closing active tab, switch to another one
+      if (id === activeNoteId && newTabs.length > 0) {
+        const closingIndex = prev.findIndex((t) => t.id === id);
+        const newActiveIndex = Math.min(closingIndex, newTabs.length - 1);
+        const newActive = newTabs[newActiveIndex];
+        setActiveNoteId(newActive.id);
+        navigate(`/notes/${newActive.id}`, { replace: true });
+      } else if (newTabs.length === 0) {
+        setActiveNoteId(null);
+        navigate("/notes", { replace: true });
+      }
+      return newTabs;
+    });
   };
 
   const handleSelectTag = (tagId: string | null) => {
@@ -206,6 +323,16 @@ export function NotesPage() {
           >
             <Home className="h-4 w-4" />
           </Button>
+        </div>
+
+        {/* Tab Bar - Desktop only */}
+        <div className="hidden md:block">
+          <TabBar
+            tabs={openTabs}
+            activeTabId={activeNoteId}
+            onSelectTab={handleSelectTab}
+            onCloseTab={handleCloseTab}
+          />
         </div>
 
         <div className="flex-1 overflow-hidden relative">

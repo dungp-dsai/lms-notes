@@ -15,7 +15,7 @@ import { cn } from "@/lib/utils";
 
 interface SidebarProps {
   activeNoteId: string | null;
-  onSelectNote: (id: string) => void;
+  onSelectNote: (id: string, title?: string) => void;
   selectedTagId: string | null;
   onSelectTag: (tagId: string | null) => void;
   showUntagged?: boolean;
@@ -37,6 +37,7 @@ export function Sidebar({
   const [noteToDelete, setNoteToDelete] = useState<string | null>(null);
 
   const { data: notes = [], isLoading } = useNoteList(selectedTagId, showUntagged);
+  const { data: allNotes = [] } = useNoteList(); // For duplicate checking
   const { data: tags = [] } = useTags();
   const createNote = useCreateNote();
   const deleteNote = useDeleteNote();
@@ -49,8 +50,16 @@ export function Sidebar({
 
   const handleCreate = async () => {
     const tagIds = selectedTagId ? [selectedTagId] : [];
-    const note = await createNote.mutateAsync({ title: "Untitled", tag_ids: tagIds });
-    onSelectNote(note.id);
+    // Generate unique title
+    let title = "Untitled";
+    let counter = 1;
+    const existingTitles = new Set(allNotes.map((n) => n.title.toLowerCase()));
+    while (existingTitles.has(title.toLowerCase())) {
+      title = `Untitled ${counter}`;
+      counter++;
+    }
+    const note = await createNote.mutateAsync({ title, tag_ids: tagIds });
+    onSelectNote(note.id, note.title);
   };
 
   const handleDeleteClick = (e: React.MouseEvent, id: string) => {
@@ -63,7 +72,7 @@ export function Sidebar({
     if (noteToDelete) {
       if (activeNoteId === noteToDelete) {
         const remaining = notes.filter((n) => n.id !== noteToDelete);
-        if (remaining.length > 0) onSelectNote(remaining[0].id);
+        if (remaining.length > 0) onSelectNote(remaining[0].id, remaining[0].title);
       }
       deleteNote.mutate(noteToDelete);
       setNoteToDelete(null);
@@ -239,7 +248,7 @@ export function Sidebar({
           {filtered.map((note) => (
             <div
               key={note.id}
-              onClick={() => noteToDelete !== note.id && onSelectNote(note.id)}
+              onClick={() => noteToDelete !== note.id && onSelectNote(note.id, note.title)}
               className={cn(
                 "group rounded-md px-2 py-1.5 text-left text-sm transition-colors cursor-pointer",
                 noteToDelete === note.id

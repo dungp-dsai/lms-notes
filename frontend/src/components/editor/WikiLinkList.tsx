@@ -4,6 +4,7 @@ import {
   useImperativeHandle,
   useState,
 } from "react";
+import { FileText } from "lucide-react";
 import type { SuggestionProps } from "@tiptap/suggestion";
 import type { WikiLinkSuggestionItem } from "./extensions/wiki-link-suggestion";
 
@@ -52,7 +53,10 @@ export const WikiLinkList = forwardRef<
   if (props.items.length === 0) {
     return (
       <div className="mention-suggestion">
-        <div className="item text-muted-foreground">No notes found</div>
+        <div className="item text-muted-foreground flex items-center gap-2">
+          <FileText className="h-4 w-4 opacity-50" />
+          <span>No notes found</span>
+        </div>
       </div>
     );
   }
@@ -65,7 +69,10 @@ export const WikiLinkList = forwardRef<
           key={item.id}
           onClick={() => selectItem(index)}
         >
-          {item.title}
+          <span className="flex items-center gap-2">
+            <FileText className="h-4 w-4 opacity-60 shrink-0" />
+            <span className="truncate">{item.title}</span>
+          </span>
         </button>
       ))}
     </div>

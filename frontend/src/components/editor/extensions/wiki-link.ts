@@ -1,4 +1,20 @@
-import { mergeAttributes, Node } from "@tiptap/react";
+import { mergeAttributes, Node, nodeInputRule } from "@tiptap/react";
+
+// Regex to match [[title]] pattern - captures the title inside brackets
+const WIKI_LINK_INPUT_REGEX = /\[\[([^\]]+)\]\]$/;
+
+// Type for the global notes registry
+declare global {
+  interface Window {
+    __notesRegistry?: { id: string; title: string }[];
+  }
+}
+
+// Helper to find a note by title
+function findNoteByTitle(title: string): { id: string; title: string } | undefined {
+  const notes = window.__notesRegistry || [];
+  return notes.find((n) => n.title.toLowerCase() === title.toLowerCase());
+}
 
 export const WikiLink = Node.create({
   name: "wikiLink",
@@ -47,29 +63,75 @@ export const WikiLink = Node.create({
   addNodeView() {
     return ({ node, HTMLAttributes }) => {
       const dom = document.createElement("span");
+      const title = node.attrs.title;
+      
+      // Function to update styling based on note existence
+      const updateStyling = () => {
+        const existingNote = findNoteByTitle(title);
+        const noteExists = !!node.attrs.noteId || !!existingNote;
+        dom.className = noteExists ? "wiki-link" : "wiki-link wiki-link-new";
+      };
+      
+      // Set initial attributes
       Object.entries(
         mergeAttributes(HTMLAttributes, {
           "data-type": "wiki-link",
-          class: "wiki-link",
         })
       ).forEach(([key, value]) => {
         if (value !== null && value !== undefined) {
           dom.setAttribute(key, String(value));
         }
       });
-      dom.textContent = `[[${node.attrs.title}]]`;
+      dom.textContent = `[[${title}]]`;
+      updateStyling();
+
+      // Listen for notes registry updates to refresh styling
+      const handleNotesUpdate = () => updateStyling();
+      window.addEventListener("notes-registry-updated", handleNotesUpdate);
 
       dom.addEventListener("click", () => {
-        if (node.attrs.noteId) {
+        // Check dynamically for existing note
+        const existing = findNoteByTitle(title);
+        const targetNoteId = node.attrs.noteId || existing?.id;
+        
+        if (targetNoteId) {
+          // Navigate to existing note
           window.dispatchEvent(
             new CustomEvent("navigate-note", {
-              detail: { noteId: node.attrs.noteId },
+              detail: { noteId: targetNoteId },
+            })
+          );
+        } else if (title) {
+          // Create new note with this title
+          window.dispatchEvent(
+            new CustomEvent("create-note-from-link", {
+              detail: { title },
             })
           );
         }
       });
 
-      return { dom };
+      return {
+        dom,
+        destroy() {
+          window.removeEventListener("notes-registry-updated", handleNotesUpdate);
+        },
+      };
     };
+  },
+
+  addInputRules() {
+    return [
+      nodeInputRule({
+        find: WIKI_LINK_INPUT_REGEX,
+        type: this.type,
+        getAttributes: (match: RegExpMatchArray) => {
+          const title = match[1]?.trim();
+          // Check if note already exists and set noteId
+          const existingNote = findNoteByTitle(title);
+          return { title, noteId: existingNote?.id || null };
+        },
+      }),
+    ];
   },
 });

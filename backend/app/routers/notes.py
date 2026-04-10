@@ -21,9 +21,12 @@ async def list_notes(
 
 @router.post("/notes", response_model=NoteDetail, status_code=201)
 async def create_note(body: NoteCreate, db: AsyncSession = Depends(get_db)):
-    return await note_service.create_note(
+    result = await note_service.create_note(
         db, body.title, body.content, body.original_text, body.tag_ids or None
     )
+    if isinstance(result, str):
+        raise HTTPException(status_code=409, detail=result)
+    return result
 
 
 @router.get("/notes/search", response_model=list[NoteSearchResult])
@@ -44,12 +47,14 @@ async def get_note(note_id: uuid.UUID, db: AsyncSession = Depends(get_db)):
 
 @router.put("/notes/{note_id}", response_model=NoteDetail)
 async def update_note(note_id: uuid.UUID, body: NoteUpdate, db: AsyncSession = Depends(get_db)):
-    note = await note_service.update_note(
+    result = await note_service.update_note(
         db, note_id, body.title, body.content, body.original_text, body.tag_ids
     )
-    if note is None:
+    if result is None:
         raise HTTPException(status_code=404, detail="Note not found")
-    return note
+    if isinstance(result, str):
+        raise HTTPException(status_code=409, detail=result)
+    return result
 
 
 @router.delete("/notes/{note_id}", status_code=204)

@@ -30,13 +30,28 @@ async def get_note(db: AsyncSession, note_id: uuid.UUID) -> Note | None:
     return result.scalar_one_or_none()
 
 
+async def check_duplicate_title(
+    db: AsyncSession, title: str, exclude_note_id: uuid.UUID | None = None
+) -> bool:
+    """Check if a note with the given title already exists."""
+    query = select(Note).where(Note.title.ilike(title))
+    if exclude_note_id:
+        query = query.where(Note.id != exclude_note_id)
+    result = await db.execute(query)
+    return result.scalar_one_or_none() is not None
+
+
 async def create_note(
     db: AsyncSession,
     title: str,
     content: str,
     original_text: str = "",
     tag_ids: list[uuid.UUID] | None = None,
-) -> Note:
+) -> Note | str:
+    # Check for duplicate title
+    if await check_duplicate_title(db, title):
+        return f"Note with title '{title}' already exists"
+    
     note = Note(title=title, content=content, original_text=original_text)
     if tag_ids:
         tags_result = await db.execute(select(Tag).where(Tag.id.in_(tag_ids)))
@@ -56,7 +71,7 @@ async def update_note(
     content: str | None,
     original_text: str | None = None,
     tag_ids: list[uuid.UUID] | None = None,
-) -> Note | None:
+) -> Note | None | str:
     result = await db.execute(
         select(Note).options(selectinload(Note.tags)).where(Note.id == note_id)
     )
@@ -66,6 +81,10 @@ async def update_note(
     
     old_title = note.title
     title_changed = title is not None and title != old_title
+    
+    # Check for duplicate title when renaming
+    if title_changed and await check_duplicate_title(db, title, exclude_note_id=note_id):
+        return f"Note with title '{title}' already exists"
     
     if title is not None:
         note.title = title

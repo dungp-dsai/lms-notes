@@ -19,6 +19,7 @@ import type { WikiLinkSuggestionItem } from "./extensions/wiki-link-suggestion";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
+import { showToast } from "@/components/ui/toast";
 import { cn } from "@/lib/utils";
 
 interface RevisionTask {
@@ -49,6 +50,13 @@ export function NoteEditor({ noteId, revisionTask, onRevisionComplete }: NoteEdi
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
   const skipNextUpdate = useRef(false);
   const tagPickerRef = useRef<HTMLDivElement>(null);
+
+  // Update global notes registry for wiki-link resolution
+  useEffect(() => {
+    window.__notesRegistry = notes.map((n) => ({ id: n.id, title: n.title }));
+    // Notify wiki-links to update their styling
+    window.dispatchEvent(new CustomEvent("notes-registry-updated"));
+  }, [notes]);
 
   const handleDeleteNote = () => {
     const remaining = notes.filter((n) => n.id !== noteId);
@@ -219,12 +227,35 @@ export function NoteEditor({ noteId, revisionTask, onRevisionComplete }: NoteEdi
   }, [editor]);
 
   const handleSave = useCallback(() => {
-    if (!editor) return;
+    if (!editor || !hasUnsavedChanges) return;
     updateNote.mutate(
       { id: noteId, title, content: editor.getHTML() },
-      { onSuccess: () => setHasUnsavedChanges(false) }
+      { 
+        onSuccess: () => setHasUnsavedChanges(false),
+        onError: (error) => {
+          if (error instanceof Error) {
+            showToast(error.message, "error");
+          }
+        }
+      }
     );
-  }, [noteId, title, editor, updateNote]);
+  }, [noteId, title, editor, updateNote, hasUnsavedChanges]);
+
+  // Listen for save-current-note event (triggered when switching tabs)
+  useEffect(() => {
+    const saveHandler = (e: Event) => {
+      const detail = (e as CustomEvent).detail;
+      // Only save if this is the note being switched away from
+      if (detail?.noteId === noteId && hasUnsavedChanges && editor) {
+        updateNote.mutate(
+          { id: noteId, title: titleRef.current, content: editor.getHTML() },
+          { onSuccess: () => setHasUnsavedChanges(false) }
+        );
+      }
+    };
+    window.addEventListener("save-current-note", saveHandler);
+    return () => window.removeEventListener("save-current-note", saveHandler);
+  }, [noteId, editor, hasUnsavedChanges, updateNote]);
 
   useEffect(() => {
     if (note && editor) {
