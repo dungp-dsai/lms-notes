@@ -92,7 +92,17 @@ export function NoteEditor({ noteId, revisionTask, onRevisionComplete }: NoteEdi
 
   const handleAddTag = (tagId: string) => {
     const newTagIds = [...noteTagIds, tagId];
-    updateNote.mutate({ id: noteId, tag_ids: newTagIds });
+    // Also save current content to prevent losing unsaved changes
+    const currentContent = editorRef.current?.getHTML();
+    updateNote.mutate(
+      { 
+        id: noteId, 
+        tag_ids: newTagIds,
+        ...(currentContent && { content: currentContent }),
+        ...(titleRef.current && { title: titleRef.current }),
+      },
+      { onSuccess: () => setHasUnsavedChanges(false) }
+    );
     setShowTagPicker(false);
   };
 
@@ -116,12 +126,40 @@ export function NoteEditor({ noteId, revisionTask, onRevisionComplete }: NoteEdi
 
   const handleRemoveTag = (tagId: string) => {
     const newTagIds = noteTagIds.filter((id) => id !== tagId);
-    updateNote.mutate({ id: noteId, tag_ids: newTagIds });
+    // Also save current content to prevent losing unsaved changes
+    const currentContent = editorRef.current?.getHTML();
+    updateNote.mutate(
+      { 
+        id: noteId, 
+        tag_ids: newTagIds,
+        ...(currentContent && { content: currentContent }),
+        ...(titleRef.current && { title: titleRef.current }),
+      },
+      { onSuccess: () => setHasUnsavedChanges(false) }
+    );
   };
+
+  const editorRef = useRef<Editor | null>(null);
+  const titleRef = useRef(title);
+  
+  // Keep refs in sync
+  useEffect(() => {
+    titleRef.current = title;
+  }, [title]);
 
   const handleSaveOriginalText = useCallback(
     (text: string) => {
-      updateNote.mutate({ id: noteId, original_text: text });
+      // Also save current editor content to prevent losing unsaved changes
+      const currentContent = editorRef.current?.getHTML();
+      updateNote.mutate(
+        { 
+          id: noteId, 
+          original_text: text,
+          ...(currentContent && { content: currentContent }),
+          ...(titleRef.current && { title: titleRef.current }),
+        },
+        { onSuccess: () => setHasUnsavedChanges(false) }
+      );
     },
     [noteId, updateNote]
   );
@@ -174,6 +212,11 @@ export function NoteEditor({ noteId, revisionTask, onRevisionComplete }: NoteEdi
       },
     },
   });
+
+  // Keep editor ref in sync
+  useEffect(() => {
+    editorRef.current = editor;
+  }, [editor]);
 
   const handleSave = useCallback(() => {
     if (!editor) return;
