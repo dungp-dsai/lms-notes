@@ -4,7 +4,7 @@ import { Home, Menu, X, PanelLeftClose, PanelLeft } from "lucide-react";
 import { Sidebar } from "@/components/layout/Sidebar";
 import { NoteEditor } from "@/components/editor/NoteEditor";
 import { Button } from "@/components/ui/button";
-import { useTask } from "@/hooks/useNotes";
+import { useTask, useNoteList } from "@/hooks/useNotes";
 import { cn } from "@/lib/utils";
 
 const MIN_SIDEBAR_WIDTH = 200;
@@ -30,6 +30,18 @@ export function NotesPage() {
 
   const revisionTaskId = searchParams.get("revision");
   const { data: revisionTask } = useTask(revisionTaskId);
+
+  // Fetch notes to auto-select first one
+  const { data: notes = [] } = useNoteList(selectedTagId || undefined, showUntagged);
+
+  // Auto-select first note when no note is selected
+  useEffect(() => {
+    if (!activeNoteId && notes.length > 0) {
+      const firstNote = notes[0];
+      setActiveNoteId(firstNote.id);
+      navigate(`/notes/${firstNote.id}`, { replace: true });
+    }
+  }, [activeNoteId, notes, navigate]);
 
   const handleMouseDown = useCallback((e: React.MouseEvent) => {
     e.preventDefault();
@@ -85,6 +97,7 @@ export function NotesPage() {
   const handleSelectTag = (tagId: string | null) => {
     setSelectedTagId(tagId);
     setShowUntagged(false);
+    setActiveNoteId(null); // Reset so first note gets auto-selected
     if (tagId) {
       setSearchParams({ tag: tagId });
     } else {
@@ -95,6 +108,7 @@ export function NotesPage() {
   const handleToggleUntagged = (untagged: boolean) => {
     setShowUntagged(untagged);
     setSelectedTagId(null);
+    setActiveNoteId(null); // Reset so first note gets auto-selected
     if (untagged) {
       setSearchParams({ untagged: "true" });
     } else {
